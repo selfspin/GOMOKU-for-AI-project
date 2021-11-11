@@ -1,7 +1,6 @@
 import pisqpipe as pp
-import example_pzj as ab
+import absearch as ab
 import copy
-import regex
 
 
 def fast_kill_action(board):
