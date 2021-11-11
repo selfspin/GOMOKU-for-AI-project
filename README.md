@@ -42,5 +42,5 @@ absearch
 每手棋用时：986毫秒（最多12.9秒），每局用时：18秒
 每局手数：18，CRC值：3a3b4726，内存：4.15MB
 
-![image-20211111234729312](C:\Users\姜\AppData\Roaming\Typora\typora-user-images\image-20211111234729312.png)
+![absearch rank](.\figure\absearch.png)
 
