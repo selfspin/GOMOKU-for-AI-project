@@ -34,3 +34,13 @@ Note: the executables `pip.exe` and `pyinstaller.exe` might need full path, in m
 #### How to create your own AI
 Replace file example.py with your own algorithm. Please don't change file pisqpipe.py, because it contains communication between your AI and the game manager and it might be changed in future protocol versions. 
 More information about the protocol and tournament rules can be found at [Gomocup websites](http://gomocup.org)
+
+## alpha beta pruning
+
+absearch
+胜局：25=11+14，负局：11=7+4
+每手棋用时：986毫秒（最多12.9秒），每局用时：18秒
+每局手数：18，CRC值：3a3b4726，内存：4.15MB
+
+![image-20211111234729312](C:\Users\姜\AppData\Roaming\Typora\typora-user-images\image-20211111234729312.png)
+
