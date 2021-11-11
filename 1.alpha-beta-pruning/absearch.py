@@ -118,7 +118,7 @@ def brain_turn():
         tick = time.time()
         if pp.terminateAI:
             return
-        logDebug('我的回合')
+        # logDebug('我的回合')
         # at beginning, no stones
         if not last_point:
             action = (int(pp.width / 2), int(pp.height / 2))
@@ -127,7 +127,7 @@ def brain_turn():
             return
 
         action = fast_kill_action(board)
-        logDebug('fast_kill:' + str(action))
+        # logDebug('fast_kill:' + str(action))
         if not action:
             action, v = alpha_beta_search(board, 1)
         x, y = action
@@ -289,10 +289,10 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
             action_list_new = update_actions(board_new, action_list, a[0], a[1])
             # logDebug('action_list_new' + str(action_list_new))
             fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
-            logDebug('max_move:' + str(a))
+            # logDebug('max_move:' + str(a))
             move_v, move_action = min_value(board_new, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
+            # logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
             if not action:
                 action = a
             if move_v > v:
@@ -311,7 +311,7 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
 
 
 def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
-    logDebug('min_act_list' + str(action_list))
+    # logDebug('min_act_list' + str(action_list))
     if terminal_test(depth, fea_my, fea_op):
         # logDebug('terminal min ' + str(depth))
         if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
@@ -334,7 +334,7 @@ def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
             fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
             move_v, move_action = max_value(board_new, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            # logDebug('min_move:' + str(a) + ' value:' + str(move_v))
             if not action:
                 action = a
             if move_v < v:
@@ -349,7 +349,7 @@ def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
     else:
         v = utility(fea_my, fea_op)
         action = None
-    logDebug('return' + str(v) + str(action))
+    # logDebug('return' + str(v) + str(action))
     return v, action
 
 
