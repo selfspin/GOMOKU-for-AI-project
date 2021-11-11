@@ -232,7 +232,7 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
 
 def utility(fea_my, fea_op):
     value = 0
-    ''' best weight
+    ''' now best weight
     coefmy = [2e9, 1e8, 1e8, 0, 1e4, 7, 0, 7, 3, 0]
     coefop = [2e9, 5e7, 5e1, 0, 5e1, 5, 0, 7, 3, 0]
     '''
