@@ -42,5 +42,5 @@ absearch
 每手棋用时：986毫秒（最多12.9秒），每局用时：18秒
 每局手数：18，CRC值：3a3b4726，内存：4.15MB
 
-![absearch rank](.\figure\absearch.png)
+![absearch rank](https://github.com/selfspin/GOMOKU-for-AI-project/blob/main/figure/absearch.png)
 
