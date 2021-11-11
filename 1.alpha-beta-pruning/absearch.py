@@ -133,7 +133,8 @@ def brain_turn():
         x, y = action
         pp.do_mymove(x, y)
     except:
-        logTraceBack()
+        pass
+        # logTraceBack()
 
 
 def brain_end():
@@ -232,13 +233,9 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
 
 def utility(fea_my, fea_op):
     value = 0
-    ''' now best weight
-    coefmy = [2e9, 1e8, 1e8, 0, 1e4, 7, 0, 7, 3, 0]
-    coefop = [2e9, 5e7, 5e1, 0, 5e1, 5, 0, 7, 3, 0]
-    '''
-    # testing weight
-    coefmy = [2e9, 1e8, 1e8, 0, 1e4, 7, 0, 7, 3, 0]
-    coefop = [2e9, 5e7, 5e1, 0, 5e1, 5, 0, 7, 3, 0]
+    # weight
+    coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
+    coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
     l = len(coefmy)
     for i in range(l):
         value = value + coefmy[i] * fea_my[i] - coefop[i] * fea_op[i]
@@ -364,7 +361,7 @@ def alpha_beta_search(board, color):
 # A possible way how to debug brains.
 # To test it, just "uncomment" it (delete enclosing """)
 ######################################################################
-
+"""
 # define a file for logging ...
 DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/pbrain-pyrandom-master/log.log"
 # ...and clear it initially
@@ -401,7 +398,7 @@ def brain_turn():
     except:
         logTraceBack()
 '''
-
+"""
 ######################################################################
 
 # "overwrites" functions in pisqpipe module

@@ -222,8 +222,8 @@ def utility(fea_my, fea_op):
     coefop = [2e9, 5e7, 5e1, 0, 5e1, 5, 0, 7, 3, 0]
     '''
     ''' pzj_2
-    coefmy = [1e11, 1e8, 1e8, 0, 1e6, 5e2, 0, 1e5, 3, 0]
-    coefop = [1e11, 8e7, 5e7, 0, 1e4, 5e2, 0, 1e2, 3, 0]
+    coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
+    coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
     '''
     coefmy = [1e11, 1e9, 1e7, 0, 1e6, 5e2, 0, 1e2, 3, 0]
     coefop = [1e11, 8e8, 5e6, 0, 1e4, 5e2, 0, 1e2, 3, 0]
