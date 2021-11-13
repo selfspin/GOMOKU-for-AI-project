@@ -192,7 +192,7 @@ def update_features_string(s, position, fea_my, fea_op):
 
 
 def update_features(board, x, y, old_fea_my, old_fea_op):
-    k = 5  # 左右四个点
+    k = 5  # 左右5个点
     fea_my = copy.deepcopy(old_fea_my)
     fea_op = copy.deepcopy(old_fea_op)
     # row
