@@ -3,6 +3,7 @@ import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import regex
 import time
+from fast_actions import *
 
 pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
 
@@ -23,7 +24,6 @@ pattern1 = [['11111'],
             ['110', '011'],
             ['11']
             ]
-laststate = []
 pattern2 = [['22222'],
             ['022220', '0202220', '0220220', '0222020'],
             ['22220', '22202', '22022', '20222', '02222'],
@@ -36,6 +36,7 @@ pattern2 = [['22222'],
             ['22']
             ]
 tick = time.time()
+
 
 def brain_init():
     if pp.width < 5 or pp.height < 5:
@@ -51,6 +52,11 @@ def brain_restart():
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0
+    global actions_adj, features_my, features_op, last_point
+    actions_adj = []
+    features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    last_point = None
     pp.pipeOut("OK")
 
 
@@ -92,6 +98,7 @@ def brain_takeback(x, y):
         return 0
     return 2
 
+
 '''
 def order_actions_adj():
     global actions_adj
@@ -105,20 +112,30 @@ def order_actions_adj():
     return
 '''
 
+
 def brain_turn():
     try:
         global tick
         tick = time.time()
         if pp.terminateAI:
             return
-        # order_actions_adj()
-        logDebug('我的回合')
-        action, v = alpha_beta_search(board, 1)
-        x = action[0]
-        y = action[1]
+        # logDebug('我的回合')
+        # at beginning, no stones
+        if not last_point:
+            action = (int(pp.width / 2), int(pp.height / 2))
+            x, y = action
+            pp.do_mymove(x, y)
+            return
+
+        action = fast_kill_action(board)
+        # logDebug('fast_kill:' + str(action))
+        if not action:
+            action, v = alpha_beta_search(board, 1)
+        x, y = action
         pp.do_mymove(x, y)
     except:
-        logTraceBack()
+        pass
+        # logTraceBack()
 
 
 def brain_end():
@@ -132,7 +149,7 @@ def brain_about():
 if DEBUG_EVAL:
     import win32gui
     def brain_eval(x, y):
-        # TODO check if it works as expected
+        # check if it works as expected
         wnd = win32gui.GetForegroundWindow()
         dc = win32gui.GetDC(wnd)
         rc = win32gui.GetClientRect(wnd)
@@ -176,7 +193,7 @@ def update_features_string(s, position, fea_my, fea_op):
 
 
 def update_features(board, x, y, old_fea_my, old_fea_op):
-    k = 5  # 左右四个点
+    k = 5  # 左右5个点
     fea_my = copy.deepcopy(old_fea_my)
     fea_op = copy.deepcopy(old_fea_op)
     # row
@@ -217,16 +234,9 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
 
 def utility(fea_my, fea_op):
     value = 0
-    ''' pzj_origin
-    coefmy = [2e9, 1e8, 1e8, 0, 1e4, 7, 0, 7, 3, 0]
-    coefop = [2e9, 5e7, 5e1, 0, 5e1, 5, 0, 7, 3, 0]
-    '''
-    ''' pzj_2
+    # weight
     coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
     coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
-    '''
-    coefmy = [1e11, 1e9, 1e7, 0, 1e6, 5e2, 0, 1e2, 3, 0]
-    coefop = [1e11, 8e8, 5e6, 0, 1e4, 5e2, 0, 1e2, 3, 0]
     l = len(coefmy)
     for i in range(l):
         value = value + coefmy[i] * fea_my[i] - coefop[i] * fea_op[i]
@@ -249,6 +259,7 @@ def update_actions(board, old_actions, x, y, k = 1):
                 actions.append((i, j))
     return actions
 
+
 '''
 def sort_key(x, ref):
     if x[0] == ref[0] or x[1] == ref[1] or abs(x[0]-ref[0]) == abs(x[1]-ref[1]):
@@ -257,10 +268,11 @@ def sort_key(x, ref):
         return min(abs(x[0]-ref[0]), abs(x[1]-ref[1]))
 '''
 
+
 def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
     if terminal_test(depth, fea_my, fea_op):
         # logDebug('terminal max ' + str(depth))
-        if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.2:
+        if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
             return float('-inf'), None
         v = utility(fea_my, fea_op)
         return v, None
@@ -277,10 +289,10 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
             action_list_new = update_actions(board_new, action_list, a[0], a[1])
             # logDebug('action_list_new' + str(action_list_new))
             fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
-            logDebug('max_move:' + str(a))
+            # logDebug('max_move:' + str(a))
             move_v, move_action = min_value(board_new, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
+            # logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
             if not action:
                 action = a
             if move_v > v:
@@ -290,7 +302,7 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
                 # logDebug('prune return' + str(v) + str(action))
                 return v, action
             alpha = max(alpha, v)
-            if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.2:
+            if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
                 return v, action
     else:
         v = utility(fea_my, fea_op)
@@ -299,10 +311,10 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
 
 
 def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
-    logDebug('min_act_list' + str(action_list))
+    # logDebug('min_act_list' + str(action_list))
     if terminal_test(depth, fea_my, fea_op):
         # logDebug('terminal min ' + str(depth))
-        if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.2:
+        if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
             return float('inf'), None
         v = utility(fea_my, fea_op)
         return v, None
@@ -322,7 +334,7 @@ def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
             fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
             move_v, move_action = max_value(board_new, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            # logDebug('min_move:' + str(a) + ' value:' + str(move_v))
             if not action:
                 action = a
             if move_v < v:
@@ -332,22 +344,19 @@ def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
                 # logDebug('prune return' + str(v) + str(action))
                 return v, action
             beta = min(beta, v)
-            if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.2:
+            if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
                 return v, action
     else:
         v = utility(fea_my, fea_op)
         action = None
-    logDebug('return' + str(v) + str(action))
+    # logDebug('return' + str(v) + str(action))
     return v, action
 
 
 def alpha_beta_search(board, color):
     depth = 0
-    if not last_point:
-        action = (int(pp.width / 2), int(pp.height / 2))
-        return action, 0
-    logDebug(str(actions_adj))
-    v, action = max_value(board, color, float("-inf"), float("inf"), depth, actions_adj, features_my, features_op, last_point)
+    v, action = max_value(board, color, float("-inf"), float("inf"), depth,
+                          actions_adj, features_my, features_op, last_point)
     return action, v
 
 
@@ -355,7 +364,7 @@ def alpha_beta_search(board, color):
 # A possible way how to debug brains.
 # To test it, just "uncomment" it (delete enclosing """)
 ######################################################################
-
+"""
 # define a file for logging ...
 DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/pbrain-pyrandom-master/log.log"
 # ...and clear it initially
@@ -392,7 +401,7 @@ def brain_turn():
     except:
         logTraceBack()
 '''
-
+"""
 ######################################################################
 
 # "overwrites" functions in pisqpipe module

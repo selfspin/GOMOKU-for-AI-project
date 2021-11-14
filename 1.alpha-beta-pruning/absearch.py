@@ -24,7 +24,6 @@ pattern1 = [['11111'],
             ['110', '011'],
             ['11']
             ]
-laststate = []
 pattern2 = [['22222'],
             ['022220', '0202220', '0220220', '0222020'],
             ['22220', '22202', '22022', '20222', '02222'],
@@ -37,6 +36,7 @@ pattern2 = [['22222'],
             ['22']
             ]
 tick = time.time()
+
 
 def brain_init():
     if pp.width < 5 or pp.height < 5:
@@ -97,6 +97,7 @@ def brain_takeback(x, y):
         board[x][y] = 0
         return 0
     return 2
+
 
 '''
 def order_actions_adj():
@@ -193,8 +194,8 @@ def update_features_string(s, position, fea_my, fea_op):
 
 def update_features(board, x, y, old_fea_my, old_fea_op):
     k = 5  # 左右5个点
-    fea_my = copy.deepcopy(old_fea_my)
-    fea_op = copy.deepcopy(old_fea_op)
+    fea_my = old_fea_my.copy()
+    fea_op = old_fea_op.copy()
     # row
     row = ''
     position = 0
@@ -231,13 +232,14 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
     return fea_my, fea_op
 
 
+# weight
+coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
+coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
+
+
 def utility(fea_my, fea_op):
     value = 0
-    # weight
-    coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
-    coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
-    l = len(coefmy)
-    for i in range(l):
+    for i in range(10):
         value = value + coefmy[i] * fea_my[i] - coefop[i] * fea_op[i]
     return value
 
@@ -248,8 +250,8 @@ def terminal_test(depth, fea_my, fea_op):
     return False
 
 
-def update_actions(board, old_actions, x, y, k = 1):
-    actions = copy.deepcopy(old_actions)
+def update_actions(board, old_actions, x, y, k=1):
+    actions = old_actions.copy()
     if (x, y) in actions:
         actions.remove((x, y))
     for i in range(x - k, x + k + 1):
@@ -258,6 +260,7 @@ def update_actions(board, old_actions, x, y, k = 1):
                 actions.append((i, j))
     return actions
 
+
 '''
 def sort_key(x, ref):
     if x[0] == ref[0] or x[1] == ref[1] or abs(x[0]-ref[0]) == abs(x[1]-ref[1]):
@@ -265,6 +268,7 @@ def sort_key(x, ref):
     else:
         return min(abs(x[0]-ref[0]), abs(x[1]-ref[1]))
 '''
+
 
 def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
     if terminal_test(depth, fea_my, fea_op):
@@ -280,16 +284,16 @@ def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
         action_list.sort(key=lambda x: abs(x[0]-last_po[0])+abs(x[1]-last_po[1]))
         # action_list.sort(key=lambda x: sort_key(x, last_po))
         for a in action_list:
-            board_new = copy.deepcopy(board)
-            board_new[a[0]][a[1]] = 1
+            board[a[0]][a[1]] = 1
             nxt_last_po = tuple(a)
-            action_list_new = update_actions(board_new, action_list, a[0], a[1])
+            action_list_new = update_actions(board, action_list, a[0], a[1])
             # logDebug('action_list_new' + str(action_list_new))
-            fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
+            fea_my_new, fea_op_new = update_features(board, a[0], a[1], fea_my, fea_op)
             # logDebug('max_move:' + str(a))
-            move_v, move_action = min_value(board_new, color, alpha, beta, depth + 1,
+            move_v, move_action = min_value(board, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
             # logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
+            board[a[0]][a[1]] = 0
             if not action:
                 action = a
             if move_v > v:
@@ -323,15 +327,15 @@ def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, las
         action_list.sort(key=lambda x: abs(x[0] - last_po[0]) + abs(x[1] - last_po[1]))
         # action_list.sort(key=lambda x: sort_key(x, last_po))
         for a in action_list:
-            board_new = copy.deepcopy(board)
-            board_new[a[0]][a[1]] = 2
+            board[a[0]][a[1]] = 2
             nxt_last_po = tuple(a)
-            action_list_new = update_actions(board_new, action_list, a[0], a[1])
+            action_list_new = update_actions(board, action_list, a[0], a[1])
             # logDebug('action_list_new ' + str(action_list_new))
-            fea_my_new, fea_op_new = update_features(board_new, a[0], a[1], fea_my, fea_op)
-            move_v, move_action = max_value(board_new, color, alpha, beta, depth + 1,
+            fea_my_new, fea_op_new = update_features(board, a[0], a[1], fea_my, fea_op)
+            move_v, move_action = max_value(board, color, alpha, beta, depth + 1,
                                             action_list_new, fea_my_new, fea_op_new, nxt_last_po)
             # logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            board[a[0]][a[1]] = 0
             if not action:
                 action = a
             if move_v < v:
