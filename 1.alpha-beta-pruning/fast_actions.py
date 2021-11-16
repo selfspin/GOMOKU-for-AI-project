@@ -15,7 +15,7 @@ def fast_kill_action(board):
         return action
     action = search_four_op(board, 2)
     if action is not None:
-       return action
+        return action
     action = search_double(board, 1)
     if action is not None:
         return action
@@ -25,30 +25,30 @@ def fast_kill_action(board):
 def search_five(board, color):
     boardLength = pp.width
     # column
-    for x in range(boardLength-4):
+    for x in range(boardLength - 4):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(5))
+            pieces = tuple(board[x + d][y] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y
     # row
     for x in range(boardLength):
-        for y in range(boardLength-4):
-            pieces = tuple(board[x][y+d] for d in range(5))
+        for y in range(boardLength - 4):
+            pieces = tuple(board[x][y + d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x, y + d
     # positive diagonal
-    for x in range(boardLength-4):
-        for y in range(boardLength-4):
-            pieces = tuple(board[x+d][y+d] for d in range(5))
+    for x in range(boardLength - 4):
+        for y in range(boardLength - 4):
+            pieces = tuple(board[x + d][y + d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y + d
     # oblique diagonal
-    for x in range(boardLength-4):
+    for x in range(boardLength - 4):
         for y in range(4, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(5))
+            pieces = tuple(board[x + d][y - d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y - d
@@ -58,30 +58,30 @@ def search_five(board, color):
 def search_four(board, color):
     boardLength = pp.width
     # column
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(6))
+            pieces = tuple(board[x + d][y] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y
     # row
     for x in range(boardLength):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x][y+d] for d in range(6))
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x, y + d
     # positive diagonal
-    for x in range(boardLength-5):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x+d][y+d] for d in range(6))
+    for x in range(boardLength - 5):
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x + d][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y + d
     # oblique diagonal
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(5, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(6))
+            pieces = tuple(board[x + d][y - d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y - d
@@ -91,30 +91,30 @@ def search_four(board, color):
 def search_four_op(board, color):
     boardLength = pp.width
     # column
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(6))
+            pieces = tuple(board[x + d][y] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y)] if d == 4 else [(x + 1, y), (x + 5, y)] if d == 1 \
-                           else [(x, y), (x + d, y), (x + 5, y)]
+                    else [(x, y), (x + d, y), (x + 5, y)]
                 max_utility = float("-inf")
                 action = None
                 for a in actions:
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                    fea_my_new, fea_op_new = ab.update_features(board_new, x, y, fea, fea)
-                    value = ab.utility(fea_my_new, fea_op_new)
+                    chg = ab.update_score(x, y, False)
+                    value = ab.utility() + chg
+                    ab.board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
                 return action
     # row
     for x in range(boardLength):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x][y+d] for d in range(6))
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x, y + 4)] if d == 4 else [(x, y + 1), (x, y + 5)] if d == 1 \
@@ -123,19 +123,18 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    board_new = copy.deepcopy(board)
-                    board_new[x][y] = 3 - color
-                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                    fea_my_new, fea_op_new = ab.update_features(board_new, x, y, fea, fea)
-                    value = ab.utility(fea_my_new, fea_op_new)
+                    ab.board[x][y] = 3 - color
+                    chg = ab.update_score(x, y, False)
+                    value = ab.utility() + chg
+                    ab.board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
                 return action
     # positive diagonal
-    for x in range(boardLength-5):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x+d][y+d] for d in range(6))
+    for x in range(boardLength - 5):
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x + d][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y + 4)] if d == 4 else [(x + 1, y + 1), (x + 5, y + 5)] if d == 1 \
@@ -146,17 +145,17 @@ def search_four_op(board, color):
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                    fea_my_new, fea_op_new = ab.update_features(board_new, x, y, fea, fea)
-                    value = ab.utility(fea_my_new, fea_op_new)
+                    chg = ab.update_score(x, y, False)
+                    value = ab.utility() + chg
+                    ab.board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
                 return action
     # oblique diagonal
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(5, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(6))
+            pieces = tuple(board[x + d][y - d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y - 4)] if d == 4 else [(x + 1, y - 1), (x + 5, y - 5)] if d == 1 \
@@ -167,9 +166,9 @@ def search_four_op(board, color):
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                    fea_my_new, fea_op_new = ab.update_features(board_new, x, y, fea, fea)
-                    value = ab.utility(fea_my_new, fea_op_new)
+                    chg = ab.update_score(x, y, False)
+                    value = ab.utility() + chg
+                    ab.board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value

@@ -1,4 +1,3 @@
-import copy
 import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import regex
@@ -8,10 +7,9 @@ from fast_actions import *
 pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
 
 MAX_BOARD = 100
+MAX_DEPTH = 2
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
-actions_adj = []
-features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+actions = []
 last_point = None
 pattern1 = [['11111'],
             ['011110', '0101110', '0110110', '0111010'],
@@ -35,6 +33,8 @@ pattern2 = [['22222'],
             ['220', '022'],
             ['22']
             ]
+string_score = {}
+score = 0
 tick = time.time()
 
 
@@ -52,11 +52,11 @@ def brain_restart():
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0
-    global actions_adj, features_my, features_op, last_point
-    actions_adj = []
-    features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    global actions, last_point
+    actions = []
     last_point = None
+    global score
+    score = 0
     pp.pipeOut("OK")
 
 
@@ -67,9 +67,8 @@ def isFree(x, y):
 def brain_my(x, y):
     if isFree(x, y):
         board[x][y] = 1
-        global actions_adj, features_my, features_op, last_point
-        actions_adj = update_actions(board, actions_adj, x, y)
-        features_my, features_op = update_features(board, x, y, features_my, features_op)
+        update_actions(x, y)
+        update_score(x, y)
     else:
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
@@ -77,10 +76,10 @@ def brain_my(x, y):
 def brain_opponents(x, y):
     if isFree(x, y):
         board[x][y] = 2
-        global actions_adj, features_my, features_op, last_point
-        actions_adj = update_actions(board, actions_adj, x, y)
-        features_my, features_op = update_features(board, x, y, features_my, features_op)
+        global last_point
+        update_actions(x, y)
         last_point = (x, y)
+        update_score(x, y)
     else:
         pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
 
@@ -99,28 +98,13 @@ def brain_takeback(x, y):
     return 2
 
 
-'''
-def order_actions_adj():
-    global actions_adj
-    dict_list = []
-    for action in actions_adj:
-        fea_my, fea_op = update_features(board, action[0], action[1], features_my, features_op)
-        v = utility(fea_my, fea_op)
-        dict_list.append({'action': action, 'value': v})
-    dict_list.sort(key=lambda x: x["value"], reverse=True)
-    actions_adj = [x['action'] for x in dict_list]
-    return
-'''
-
-
 def brain_turn():
     try:
         global tick
         tick = time.time()
         if pp.terminateAI:
             return
-        # logDebug('我的回合')
-        # at beginning, no stones
+        logDebug('我的回合')
         if not last_point:
             action = (int(pp.width / 2), int(pp.height / 2))
             x, y = action
@@ -128,14 +112,13 @@ def brain_turn():
             return
 
         action = fast_kill_action(board)
-        # logDebug('fast_kill:' + str(action))
         if not action:
-            action, v = alpha_beta_search(board, 1)
+            action, v = alpha_beta_search(1)
         x, y = action
         pp.do_mymove(x, y)
     except:
-        pass
-        # logTraceBack()
+        # pass
+        logTraceBack()
 
 
 def brain_end():
@@ -158,20 +141,34 @@ if DEBUG_EVAL:
         win32gui.ReleaseDC(wnd, dc)
 
 
-def update_features_string(s, position, fea_my, fea_op):
+# weight
+coefmy = [1e11, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
+coefop = [1e11, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
+
+
+def update_score_string(s, position, chg=True):
+    global score
+
+    if s in string_score.keys():
+        if chg:
+            score = score + string_score[s]
+        return string_score[s]
+
+    score_origin = score
+
     i = 0
     for goal in pattern1:
         num = 0
         for mod in goal:
             num += len(regex.findall(mod, s, overlapped=True))
-        fea_my[i] += num
+        score += num * coefmy[i]
         i += 1
     i = 0
     for goal in pattern2:
         num = 0
         for mod in goal:
             num += len(regex.findall(mod, s, overlapped=True))
-        fea_op[i] += num
+        score -= num * coefop[i]
         i += 1
 
     s = s[:position] + '0' + s[position+1:]
@@ -180,22 +177,30 @@ def update_features_string(s, position, fea_my, fea_op):
         num = 0
         for mod in goal:
             num += len(regex.findall(mod, s, overlapped=True))
-        fea_my[i] -= num
+        score -= num * coefmy[i]
         i += 1
     i = 0
     for goal in pattern2:
         num = 0
         for mod in goal:
             num += len(regex.findall(mod, s, overlapped=True))
-        fea_op[i] -= num
+        score += num * coefop[i]
         i += 1
-    return
+
+    string_score[s] = score - score_origin
+    s = ''.join(reversed(s))
+    string_score[s] = score - score_origin
+
+    ans = score - score_origin
+    if not chg:
+        score = score_origin
+
+    return ans
 
 
-def update_features(board, x, y, old_fea_my, old_fea_op):
+def update_score(x, y, chg=True):
     k = 5  # 左右5个点
-    fea_my = old_fea_my.copy()
-    fea_op = old_fea_op.copy()
+    change = 0
     # row
     row = ''
     position = 0
@@ -204,7 +209,9 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
             row += str(board[i][y])
             if i == x:
                 position = len(row) - 1
-    update_features_string(row, position, fea_my, fea_op)
+        else:
+            row += '#'
+    change += update_score_string(row, position, chg)
     # col
     col = ''
     for j in range(y - k, y + k + 1):
@@ -212,7 +219,9 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
             col += str(board[x][j])
             if j == y:
                 position = len(col) - 1
-    update_features_string(col, position, fea_my, fea_op)
+        else:
+            col += '#'
+    change += update_score_string(col, position, chg)
     # diag
     diag = ''
     for i in range(-k, k + 1):
@@ -220,7 +229,9 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
             diag += str(board[x + i][y + i])
             if i == 0:
                 position = len(diag) - 1
-    update_features_string(diag, position, fea_my, fea_op)
+        else:
+            diag += '#'
+    change += update_score_string(diag, position, chg)
     # oblique diag
     obdiag = ''
     for i in range(-k, k + 1):
@@ -228,136 +239,143 @@ def update_features(board, x, y, old_fea_my, old_fea_op):
             obdiag += str(board[x + i][y - i])
             if i == 0:
                 position = len(obdiag) - 1
-    update_features_string(obdiag, position, fea_my, fea_op)
-    return fea_my, fea_op
+        else:
+            obdiag += '#'
+    change += update_score_string(obdiag, position, chg)
+    return change
 
 
-# weight
-coefmy = [1e10, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
-coefop = [1e10, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
+def utility():
+    return score
 
 
-def utility(fea_my, fea_op):
-    value = 0
-    for i in range(10):
-        value = value + coefmy[i] * fea_my[i] - coefop[i] * fea_op[i]
-    return value
-
-
-def terminal_test(depth, fea_my, fea_op):
-    if depth > 1 | fea_my[0] | fea_op[0]:
+def terminal_test(depth):
+    if depth > MAX_DEPTH or abs(score) > 5e10:
         return True
     return False
 
 
-def update_actions(board, old_actions, x, y, k=1):
-    actions = old_actions.copy()
+def update_actions(x, y, k=1):
+    global actions
+    add_action = []
+    del_action = []
     if (x, y) in actions:
         actions.remove((x, y))
+        del_action.append((x, y))
     for i in range(x - k, x + k + 1):
         for j in range(y - k, y + k + 1):
-            if i >= 0 and j >= 0 and i < pp.width and j < pp.height and board[i][j] == 0 and (i, j) not in actions:
+            if isFree(i, j) and (i, j) not in actions:
                 actions.append((i, j))
-    return actions
+                add_action.append((i, j))
+    return add_action, del_action
 
 
-'''
-def sort_key(x, ref):
-    if x[0] == ref[0] or x[1] == ref[1] or abs(x[0]-ref[0]) == abs(x[1]-ref[1]):
-        return 0
-    else:
-        return min(abs(x[0]-ref[0]), abs(x[1]-ref[1]))
-'''
+def restore_actions(add_action, del_action):
+    global actions
+    j = 0
+    for i in range(len(actions)):
+        if actions[j] in add_action:
+            actions.pop(j)
+        else:
+            j += 1
+    for i in del_action:
+        actions.append(i)
+    return
 
 
-def max_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
-    if terminal_test(depth, fea_my, fea_op):
+def restore_score(chg):
+    global score
+    score = score - chg
+    return
+
+
+def sort_key(x):
+    return update_score(x[0], x[1], chg=False)
+
+
+def max_value(alpha, beta, depth):
+    if terminal_test(depth):
         # logDebug('terminal max ' + str(depth))
         if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
             return float('-inf'), None
-        v = utility(fea_my, fea_op)
+        v = utility()
         return v, None
 
     v = float("-inf")
-    action = None
-    if len(action_list) != 0:
-        action_list.sort(key=lambda x: abs(x[0]-last_po[0])+abs(x[1]-last_po[1]))
-        # action_list.sort(key=lambda x: sort_key(x, last_po))
+    act = None
+    if len(actions) != 0:
+        action_list = actions.copy()
+        action_list.sort(key=sort_key, reverse=True)
         for a in action_list:
             board[a[0]][a[1]] = 1
-            nxt_last_po = tuple(a)
-            action_list_new = update_actions(board, action_list, a[0], a[1])
-            # logDebug('action_list_new' + str(action_list_new))
-            fea_my_new, fea_op_new = update_features(board, a[0], a[1], fea_my, fea_op)
-            # logDebug('max_move:' + str(a))
-            move_v, move_action = min_value(board, color, alpha, beta, depth + 1,
-                                            action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            # logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
+            add_action, del_action = update_actions(a[0], a[1])
+            chg = update_score(a[0], a[1])
+            logDebug('max_move:' + str(a))
+            move_v, move_action = min_value(alpha, beta, depth + 1)
+            logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
             board[a[0]][a[1]] = 0
-            if not action:
-                action = a
+            restore_actions(add_action, del_action)
+            restore_score(chg)
+
+            if not act:
+                act = a
             if move_v > v:
                 v = move_v
-                action = a
+                act = a
             if v >= beta:
-                # logDebug('prune return' + str(v) + str(action))
-                return v, action
+                return v, act
             alpha = max(alpha, v)
             if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
-                return v, action
+                return v, act
     else:
-        v = utility(fea_my, fea_op)
-        action = None
-    return v, action
+        v = utility()
+        act = None
+    return v, act
 
 
-def min_value(board, color, alpha, beta, depth, action_list, fea_my, fea_op, last_po):
-    # logDebug('min_act_list' + str(action_list))
-    if terminal_test(depth, fea_my, fea_op):
+def min_value(alpha, beta, depth):
+    logDebug('min_act_list' + str(actions))
+    if terminal_test(depth):
         # logDebug('terminal min ' + str(depth))
         if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
             return float('inf'), None
-        v = utility(fea_my, fea_op)
+        v = utility()
         return v, None
 
     v = float("inf")
-    action = None
-    if len(action_list) != 0:
-        # 负优化: 改一下排序函数，先优先同一行、列、斜上的元素
-        action_list.sort(key=lambda x: abs(x[0] - last_po[0]) + abs(x[1] - last_po[1]))
-        # action_list.sort(key=lambda x: sort_key(x, last_po))
+    act = None
+    if len(actions) != 0:
+        action_list = actions.copy()
+        action_list.sort(key=sort_key)
         for a in action_list:
             board[a[0]][a[1]] = 2
-            nxt_last_po = tuple(a)
-            action_list_new = update_actions(board, action_list, a[0], a[1])
-            # logDebug('action_list_new ' + str(action_list_new))
-            fea_my_new, fea_op_new = update_features(board, a[0], a[1], fea_my, fea_op)
-            move_v, move_action = max_value(board, color, alpha, beta, depth + 1,
-                                            action_list_new, fea_my_new, fea_op_new, nxt_last_po)
-            # logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            add_action, del_action = update_actions(a[0], a[1])
+            chg = update_score(a[0], a[1])
+            move_v, move_action = max_value(alpha, beta, depth + 1)
+            logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            restore_actions(add_action, del_action)
+            restore_score(chg)
             board[a[0]][a[1]] = 0
-            if not action:
-                action = a
+
+            if not act:
+                act = a
             if move_v < v:
                 v = move_v
-                action = a
+                act = a
             if v <= alpha:
-                # logDebug('prune return' + str(v) + str(action))
-                return v, action
+                return v, act
             beta = min(beta, v)
             if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
-                return v, action
+                return v, act
     else:
-        v = utility(fea_my, fea_op)
-        action = None
-    # logDebug('return' + str(v) + str(action))
-    return v, action
+        v = utility()
+        act = None
+    return v, act
 
 
-def alpha_beta_search(board, color):
+def alpha_beta_search(color):
     depth = 0
-    v, action = max_value(board, color, float("-inf"), float("inf"), depth,
-                          actions_adj, features_my, features_op, last_point)
+    v, action = max_value(float("-inf"), float("inf"), depth + 1)
     return action, v
 
 
@@ -365,9 +383,9 @@ def alpha_beta_search(board, color):
 # A possible way how to debug brains.
 # To test it, just "uncomment" it (delete enclosing """)
 ######################################################################
-"""
+
 # define a file for logging ...
-DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/pbrain-pyrandom-master/log.log"
+DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/1.alpha-beta-pruning/log.log"
 # ...and clear it initially
 with open(DEBUG_LOGFILE, "w") as f:
     pass
@@ -402,7 +420,7 @@ def brain_turn():
     except:
         logTraceBack()
 '''
-"""
+
 ######################################################################
 
 # "overwrites" functions in pisqpipe module
