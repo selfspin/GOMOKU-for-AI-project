@@ -134,7 +134,7 @@ if DEBUG_EVAL:
 ######################################################################
 
 # define a file for logging ...
-DEBUG_LOGFILE = "D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain-pyrandom-master/AI-MCTS/MCTS.log"
+DEBUG_LOGFILE = "D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/MCTS/MCTS.log"
 # ...and clear it initially
 with open(DEBUG_LOGFILE, "w") as f:
     pass
