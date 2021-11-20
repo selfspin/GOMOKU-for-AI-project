@@ -49,6 +49,7 @@ def brain_init():
 
 
 def brain_restart():
+    global board
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0

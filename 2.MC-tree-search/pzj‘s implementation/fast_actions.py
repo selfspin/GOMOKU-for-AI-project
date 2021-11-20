@@ -1,6 +1,7 @@
 import pisqpipe as pp
-import main as ab
 import copy
+import regex
+from main import logDebug
 
 
 def fast_kill_action(board, color):
@@ -104,9 +105,9 @@ def search_four_op(board, color):
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    fea_my_new, fea_op_new = update_features(board_new, x, y, fea, fea)
+                    value = utility(fea_my_new, fea_op_new)
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -123,10 +124,11 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    ab.board[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    board_new = copy.deepcopy(board)
+                    board_new[x][y] = 3 - color
+                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    fea_my_new, fea_op_new = update_features(board_new, x, y, fea, fea)
+                    value = utility(fea_my_new, fea_op_new)
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -145,9 +147,9 @@ def search_four_op(board, color):
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    fea_my_new, fea_op_new = update_features(board_new, x, y, fea, fea)
+                    value = utility(fea_my_new, fea_op_new)
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -166,9 +168,9 @@ def search_four_op(board, color):
                     x, y = a
                     board_new = copy.deepcopy(board)
                     board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    fea = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    fea_my_new, fea_op_new = update_features(board_new, x, y, fea, fea)
+                    value = utility(fea_my_new, fea_op_new)
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -334,3 +336,120 @@ def search_double(board, color):
             intersect = sets_op[i] & sets_op[j]
             if len(intersect) != 0:
                 return list(intersect)[0]
+
+
+def update_actions(board, old_actions, x, y, k = 1):
+    actions = copy.deepcopy(old_actions)
+    if (x, y) in actions:
+        actions.remove((x, y))
+    for i in range(x - k, x + k + 1):
+        for j in range(y - k, y + k + 1):
+            if i >= 0 and j >= 0 and i < pp.width and j < pp.height and board[i][j] == 0 and (i, j) not in actions:
+                actions.append((i, j))
+    return actions
+
+
+def update_features_string(s, position, fea_my, fea_op):
+    pattern1 = [['11111'],
+                ['011110', '0101110', '0110110', '0111010'],
+                ['11110', '11101', '11011', '10111', '01111'],
+                ['1111'],
+                ['01110', '010110', '011010'],
+                ['11100', '11010', '10110', '00111', '01101', '01011'],
+                ['111', '1011', '1101'],
+                ['0110', '01010'],
+                ['110', '011'],
+                ['11']
+                ]
+    pattern2 = [['22222'],
+                ['022220', '0202220', '0220220', '0222020'],
+                ['22220', '22202', '22022', '20222', '02222'],
+                ['2222'],
+                ['02220', '020220', '022020'],
+                ['22200', '22020', '20220', '00222', '02202', '02022'],
+                ['222', '2022', '2202'],
+                ['0220', '02020'],
+                ['220', '022'],
+                ['22']
+                ]
+    i = 0
+    for goal in pattern1:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped = True))
+        fea_my[i] += num
+        i += 1
+    i = 0
+    for goal in pattern2:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped = True))
+        fea_op[i] += num
+        i += 1
+
+    s = s[:position] + '0' + s[position + 1:]
+    i = 0
+    for goal in pattern1:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped = True))
+        fea_my[i] -= num
+        i += 1
+    i = 0
+    for goal in pattern2:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped = True))
+        fea_op[i] -= num
+        i += 1
+    return
+
+
+def update_features(board, x, y, old_fea_my, old_fea_op):
+    k = 5
+    fea_my = copy.deepcopy(old_fea_my)
+    fea_op = copy.deepcopy(old_fea_op)
+    # row
+    row = ''
+    position = 0
+    for i in range(x - k, x + k + 1):
+        if 0 <= i < pp.width:
+            row += str(board[i][y])
+            if i == x:
+                position = len(row) - 1
+    update_features_string(row, position, fea_my, fea_op)
+    # col
+    col = ''
+    for j in range(y - k, y + k + 1):
+        if 0 <= j < pp.height:
+            col += str(board[x][j])
+            if j == y:
+                position = len(col) - 1
+    update_features_string(col, position, fea_my, fea_op)
+    # diag
+    diag = ''
+    for i in range(-k, k + 1):
+        if 0 <= (x + i) < pp.width and 0 <= (y + i) < pp.width:
+            diag += str(board[x + i][y + i])
+            if i == 0:
+                position = len(diag) - 1
+    update_features_string(diag, position, fea_my, fea_op)
+    # oblique diag
+    obdiag = ''
+    for i in range(-k, k + 1):
+        if 0 <= (x + i) < pp.width and 0 <= (y - i) < pp.width:
+            obdiag += str(board[x + i][y - i])
+            if i == 0:
+                position = len(obdiag) - 1
+    update_features_string(obdiag, position, fea_my, fea_op)
+    return fea_my, fea_op
+
+
+def utility(fea_my, fea_op):
+    value = 0
+    coefmy = [1e11, 1e9, 1e7, 0, 1e6, 5e2, 0, 1e2, 3, 0]
+    coefop = [1e11, 8e8, 5e6, 0, 1e4, 5e2, 0, 1e2, 3, 0]
+    l = len(coefmy)
+    for i in range(l):
+        value = value + coefmy[i] * fea_my[i] - coefop[i] * fea_op[i]
+    return value

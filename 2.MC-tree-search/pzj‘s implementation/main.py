@@ -1,18 +1,19 @@
+import copy
 import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import time
 from MCTS import *
 from fast_actions import *
 
-pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
+pp.infotext = 'name="MCTS", author="", version="1.0", country="China", www=""'
 
 MAX_BOARD = 100
-MAX_DEPTH = 10
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
+actions_adj = []
 last_point = None
-string_score = {}
-tick = time.time()
-node = None
+features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 
 def brain_init():
     if pp.width < 5 or pp.height < 5:
@@ -25,49 +26,44 @@ def brain_init():
 
 
 def brain_restart():
-    global board
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0
-    global node, last_point
-    node = None
+    global actions_adj, features_my, features_op, last_point
+    actions_adj = []
+    features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     last_point = None
     pp.pipeOut("OK")
 
 
-def isFree(bd, x, y):
-    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and bd[x][y] == 0
+def isFree(x, y):
+    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and board[x][y] == 0
 
 
 def brain_my(x, y):
-    global board
-    if isFree(board, x, y):
-        global node
-        if last_point is None:
-            node = Node(board, (x, y), [], 1)
-        else:
-            node = node.towards((x, y))
+    if isFree(x, y):
         board[x][y] = 1
+        global actions_adj, features_my, features_op, last_point
+        actions_adj = update_actions(board, actions_adj, x, y)
+        features_my, features_op = update_features(board, x, y, features_my, features_op)
     else:
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
 def brain_opponents(x, y):
-    global board
-    if isFree(board, x, y):
-        global last_point, node
-        if last_point is None:
-            node = Node(board, (x, y), [], 2)
-        else:
-            node = node.towards((x, y))
+    if isFree(x, y):
         board[x][y] = 2
+        global actions_adj, features_my, features_op, last_point
+        actions_adj = update_actions(board, actions_adj, x, y)
+        features_my, features_op = update_features(board, x, y, features_my, features_op)
         last_point = (x, y)
     else:
         pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
 
 
 def brain_block(x, y):
-    if isFree(board, x, y):
+    if isFree(x, y):
         board[x][y] = 3
     else:
         pp.pipeOut("ERROR winning move [{},{}]".format(x, y))
@@ -82,24 +78,28 @@ def brain_takeback(x, y):
 
 def brain_turn():
     try:
-        global tick
-        tick = time.time()
+        logDebug('actions_adj:  ' + str(actions_adj))
         if pp.terminateAI:
             return
+        # at beginning, no stones
         if not last_point:
             action = (int(pp.width / 2), int(pp.height / 2))
             x, y = action
             pp.do_mymove(x, y)
             return
 
+        fea_my = copy.deepcopy(features_my)
+        fea_op = copy.deepcopy(features_op)
         action = fast_kill_action(board, 1)
+        logDebug('fast_kill:' + str(action))
         if not action:
-            solve = MCTS_Algorithm(node)
-            action = solve.UCT()
+            board_copy = copy.deepcopy(board)
+            actions = copy.deepcopy(actions_adj)
+            mcts_player = MCTS(board_copy, 1, actions, fea_my, fea_op)
+            action = mcts_player.get_action()
         x, y = action
         pp.do_mymove(x, y)
     except:
-        # pass
         logTraceBack()
 
 
@@ -113,6 +113,8 @@ def brain_about():
 
 if DEBUG_EVAL:
     import win32gui
+
+
     def brain_eval(x, y):
         # check if it works as expected
         wnd = win32gui.GetForegroundWindow()
@@ -123,14 +125,7 @@ if DEBUG_EVAL:
         win32gui.ReleaseDC(wnd, dc)
 
 
-def update_actions(bd, actions, x, y, k=1):
-    if (x, y) in actions:
-        actions.remove((x, y))
-    for i in range(x - k, x + k + 1):
-        for j in range(y - k, y + k + 1):
-            if isFree(bd, i, j) and (i, j) not in actions:
-                actions.append((i, j))
-    return
+
 
 
 ######################################################################
@@ -139,7 +134,7 @@ def update_actions(bd, actions, x, y, k=1):
 ######################################################################
 
 # define a file for logging ...
-DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/2.MC-tree-search/log.log"
+DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/2.MC-tree-search/MCTS.log"
 # ...and clear it initially
 with open(DEBUG_LOGFILE, "w") as f:
     pass
@@ -160,20 +155,6 @@ def logTraceBack():
         f.flush()
     raise
 
-
-'''
-# use logDebug wherever
-# use try-except (with logTraceBack in except branch) to get exception info
-# an example of problematic function
-def brain_turn():
-    logDebug("some message 1")
-    try:
-        logDebug("some message 2")
-        1. / 0.  # some code raising an exception
-        logDebug("some message 3")  # not logged, as it is after error
-    except:
-        logTraceBack()
-'''
 
 ######################################################################
 
