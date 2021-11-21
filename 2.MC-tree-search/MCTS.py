@@ -1,138 +1,162 @@
-import copy
-import pisqpipe as pp
-import time
+from main import *
 from fast_actions import *
-from random import choice, random
-from main import logDebug
+import random
+from math import sqrt, log
+from copy import deepcopy
 
 
-class MCTS(object):
+def have_winner(bd):
+    # 返回获胜的颜色，没有就返回0
+    boardLength = pp.width
+    # column
+    for x in range(boardLength - 4):
+        for y in range(boardLength):
+            pieces = tuple(bd[x + d][y] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # row
+    for x in range(boardLength):
+        for y in range(boardLength - 4):
+            pieces = tuple(bd[x][y + d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # positive diagonal
+    for x in range(boardLength - 4):
+        for y in range(boardLength - 4):
+            pieces = tuple(bd[x + d][y + d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # oblique diagonal
+    for x in range(boardLength - 4):
+        for y in range(4, boardLength):
+            pieces = tuple(bd[x + d][y - d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    return 0
 
-    def __init__(self, board, color, actions, fea_my, fea_op):
-        self.board = board
+
+class Node:
+    def __init__(self, bd, from_action, action, color, fa=None):  # 从board开始，下了from_action一步
+        self.state = deepcopy(bd)
+        self.a = from_action
+        self.reward = 0
+        self.visit_count = 1
+        self.A = deepcopy(action)
         self.color = color
-        self.actions = actions
-        self.fea_my = fea_my
-        self.fea_op = fea_op
-        self.max_simulation_times = 10
-        self.max_depth = 20
-        self.explorationProb = 0.5
-        self.reward = {}
+        self.fa = fa
+        self.son = {}
 
-    def get_action(self):
-        times = 0
-        while times < self.max_simulation_times:
-            board_new = copy.deepcopy(self.board)
+        x, y = self.a
+        self.state[x][y] = self.color
+        update_actions(self.state, self.A, x, y)
 
-            # select
-            x, y = self.select()
-            board_new[x][y] = self.color
-            actions_new = update_actions(board_new, self.actions, x, y)
-            fea_my_new, fea_op_new = update_features(board_new, x, y, self.fea_my, self.fea_op)
+    def towards(self, action):
+        if action in self.son.keys():
+            self.son[action].fa = None
+            return self.son[action]
+        return Node(self.state, action, self.A, 3 - self.color)
 
-            # expand
-            x_op, y_op = self.expand(board_new, actions_new, fea_my_new, fea_op_new)
-            board_new[x_op][y_op] = 3 - self.color
-            actions_new = update_actions(board_new, actions_new, x_op, y_op)
-
-            # simulation
-            r = self.simulation(board_new, self.color, actions_new, self.max_depth)
-
-            # backpropagation
-            if (x, y) in self.reward:
-                rw = self.reward[(x, y)]
-                rw[0] += r
-                rw[1] += 1
-                self.reward[(x, y)] = rw
-            else:
-                self.reward[(x, y)] = [r, 1]
-
-            times += 1
-
-        max_mean_reward = -1
-        action = None
-        for a in self.reward:
-            rw = self.reward[a]
-            mean_reward = rw[0] / rw[1] + rw[1]/self.max_simulation_times
-            if mean_reward > max_mean_reward:
-                max_mean_reward = mean_reward
-                action = a
-        return action
-
-    def select(self):
-        actions_value = order_actions(self.board, self.actions, self.fea_my, self.fea_op, self.color)
-        actions = [x[0] for x in actions_value]
-        if random() < self.explorationProb:
-            return choice(actions)
-        else:
-            return actions[0]
-
-    def expand(self, board, actions, fea_my, fea_op):
-        actions_value = order_actions(board, actions, fea_my, fea_op, 3 - self.color)
-        actions = [x[0] for x in actions_value]
-        if random() < self.explorationProb:
-            return choice(actions)
-        else:
-            return actions[-1]
-
-    def simulation(self, board, color, actions, max_depth):
-        for _ in range(max_depth):
-            if self.is_win(board, color):
-                v = 1.0 if color == 1 else 0.0
-                return v
-            a = fast_kill_action(board, color)
-            if a is not None:
-                x, y = a
-                board[x][y] = color
-                actions = update_actions(board, actions, x, y)
-            else:
-                x, y = choice(actions)
-                board[x][y] = color
-                actions = update_actions(board, actions, x, y)
-            color = 3 - color
-
-        return 0.5
-
-    def is_win(self, board, color):
-        boardLength = pp.width
-        # column
-        for x in range(boardLength - 4):
-            for y in range(boardLength):
-                pieces = tuple(board[x + d][y] for d in range(5))
-                if pieces.count(color) == 5:
-                    return True
-        # row
-        for x in range(boardLength):
-            for y in range(boardLength - 4):
-                pieces = tuple(board[x][y + d] for d in range(5))
-                if pieces.count(color) == 5:
-                    return True
-        # positive diagonal
-        for x in range(boardLength - 4):
-            for y in range(boardLength - 4):
-                pieces = tuple(board[x + d][y + d] for d in range(5))
-                if pieces.count(color) == 5:
-                    return True
-        # oblique diagonal
-        for x in range(boardLength - 4):
-            for y in range(4, boardLength):
-                pieces = tuple(board[x + d][y - d] for d in range(5))
-                if pieces.count(color) == 5:
-                    return True
+    def is_terminal(self, depth):
+        if depth > MAX_DEPTH or have_winner(self.state):
+            return True
         return False
 
+    def expand(self):
+        act = random.choice(self.A)
+        son = Node(self.state, act, self.A, 3 - self.color, fa=self)
+        self.son[act] = son
+        self.A.remove(act)
+        return son
 
-def order_actions(board, actions, fea_my, fea_op, color):
-    """
-    return a list [(action, value)]
-    """
-    action_value = []
-    for action in actions:
-        x, y = action
-        board[x][y] = color
-        fea_my_new, fea_op_new = update_features(board, x, y, fea_my, fea_op)
-        v = utility(fea_my_new, fea_op_new)
-        action_value.append((action, v))
-        board[x][y] = 0
-    action_value.sort(key=lambda e: e[1], reverse=True)
-    return action_value
+    def best_son(self):
+        if self.color == 1:
+            maxv = float('-inf')
+            a = None
+            for v in self.son.values():
+                q = v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count)
+                if q > maxv:
+                    maxv = q
+                    a = v
+            return a
+            # return max([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
+            #            for v in self.son.values()])[1]
+
+        else:
+            minv = float('inf')
+            a = None
+            for v in self.son.values():
+                q = v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count)
+                if q < minv:
+                    minv = q
+                    a = v
+            return a
+            # return min([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
+            #             for v in self.son.values()])[1]
+
+
+class MCTS_Algorithm:
+    def __init__(self, node, max_actions=30):
+        self.root = node
+        self.max_actions = max_actions
+
+    def UCT(self):
+        for i in range(self.max_actions):
+            # logDebug(str(i))
+            node = self.Tree_Policy(self.root)
+            r = self.policy(node)
+            self.back(node, r)
+        rt = self.root
+        logDebug('son ' + str(rt.son))
+        return max([(v.reward / v.visit_count + sqrt(log(rt.visit_count) / v.visit_count), v.a)
+                    for v in rt.son.values()])[1]
+
+    def Tree_Policy(self, node):
+        depth = 1
+        while not node.is_terminal(depth):
+            node.visit_count += 1
+            if node.A:
+                return node.expand()
+            else:
+                node = node.best_son()
+            depth += 1
+        return node
+
+    def policy(self, node):
+        # bd = node.state.copy()
+        bd = deepcopy(node.state)
+        now_color = node.color
+        # act_list = node.A.copy()
+        act_list = deepcopy(node.A)
+        depth = 0
+        while not have_winner(bd) and depth < 10:
+            act = fast_kill_action(bd, now_color)
+            if act is None:
+                # logDebug(str(act_list))
+                act = random.choice(act_list)
+            x, y = act
+            bd[x][y] = now_color
+            update_actions(bd, act_list, x, y)
+            depth += 1
+            now_color = 3 - now_color
+        x = have_winner(bd)
+        if x == 1:
+            return 1
+        elif x == 2:
+            return 0
+        else:
+            return 0.05
+
+    def back(self, node, r):
+        while node is not None:
+            node.visit_count += 1
+            node.reward += r
+            node = node.fa
+        return
