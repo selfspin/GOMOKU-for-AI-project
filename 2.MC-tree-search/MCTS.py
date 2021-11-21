@@ -5,7 +5,40 @@ from math import sqrt, log
 
 
 def have_winner(bd):
-    # TODO:捷哥写  返回获胜的颜色，没有就返回0
+    # TODO:返回获胜的颜色，没有就返回0
+    boardLength = pp.width
+    # column
+    for x in range(boardLength - 4):
+        for y in range(boardLength):
+            pieces = tuple(bd[x + d][y] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # row
+    for x in range(boardLength):
+        for y in range(boardLength - 4):
+            pieces = tuple(bd[x][y + d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # positive diagonal
+    for x in range(boardLength - 4):
+        for y in range(boardLength - 4):
+            pieces = tuple(bd[x + d][y + d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
+    # oblique diagonal
+    for x in range(boardLength - 4):
+        for y in range(4, boardLength):
+            pieces = tuple(bd[x + d][y - d] for d in range(5))
+            if pieces.count(1) == 5:
+                return 1
+            elif pieces.count(2) == 5:
+                return 2
     return 0
 
 
@@ -39,6 +72,7 @@ class Node:
         act = random.choice(self.A)
         son = Node(self.state, act, self.A, 3 - self.color, fa=self)
         self.son[act] = son
+        self.A.remove(act)
         return son
 
     def best_son(self):
@@ -51,7 +85,7 @@ class Node:
 
 
 class MCTS_Algorithm:
-    def __init__(self, node, max_actions=1000):
+    def __init__(self, node, max_actions=100):
         self.root = node
         self.max_actions = max_actions
 
@@ -67,6 +101,7 @@ class MCTS_Algorithm:
     def Tree_Policy(self, node):
         depth = 1
         while not node.is_terminal(depth):
+            node.visit_count += 1
             if node.A:
                 return node.expand()
             else:
@@ -94,7 +129,7 @@ class MCTS_Algorithm:
         elif x == 2:
             return 0
         else:
-            return 0.5
+            return 0.3
 
     def back(self, node, r):
         while node is not None:
