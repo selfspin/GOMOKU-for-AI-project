@@ -1,43 +1,19 @@
+import copy
 import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import time
-import traceback
-import regex
 from MCTS import *
 from fast_actions import *
 
-pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
+pp.infotext = 'name="MCTS", author="", version="1.0", country="China", www=""'
 
 MAX_BOARD = 100
-MAX_DEPTH = 10
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
+actions_adj = []
 last_point = None
-pattern1 = [['11111'],
-            ['011110', '0101110', '0110110', '0111010'],
-            ['11110', '11101', '11011', '10111', '01111'],
-            ['1111'],
-            ['01110', '010110', '011010'],
-            ['11100', '11010', '10110', '00111', '01101', '01011'],
-            ['111', '1011', '1101'],
-            ['0110', '01010'],
-            ['110', '011'],
-            ['11']
-            ]
-pattern2 = [['22222'],
-            ['022220', '0202220', '0220220', '0222020'],
-            ['22220', '22202', '22022', '20222', '02222'],
-            ['2222'],
-            ['02220', '020220', '022020'],
-            ['22200', '22020', '20220', '00222', '02202', '02022'],
-            ['222', '2022', '2202'],
-            ['0220', '02020'],
-            ['220', '022'],
-            ['22']
-            ]
-string_score = {}
-score = 0
-tick = time.time()
-node = None
+features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 
 def brain_init():
     if pp.width < 5 or pp.height < 5:
@@ -50,15 +26,14 @@ def brain_init():
 
 
 def brain_restart():
-    global board
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0
-    global node, last_point
-    node = None
+    global actions_adj, features_my, features_op, last_point
+    actions_adj = []
+    features_my = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    features_op = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     last_point = None
-    global score
-    score = 0
     pp.pipeOut("OK")
 
 
@@ -66,36 +41,22 @@ def isFree(x, y):
     return x >= 0 and y >= 0 and x < pp.width and y < pp.height and board[x][y] == 0
 
 
-def isfree(bd, x, y):
-    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and bd[x][y] == 0
-
 def brain_my(x, y):
-    global board
-    logDebug('my move' + str((x, y)))
     if isFree(x, y):
-        global node
-        if last_point is None:
-            node = Node(board, (x, y), [], 1)
-        else:
-            node = node.towards((x, y))
         board[x][y] = 1
+        global actions_adj, features_my, features_op, last_point
+        actions_adj = update_actions(board, actions_adj, x, y)
+        features_my, features_op = update_features(board, x, y, features_my, features_op)
     else:
-        for xi in range(pp.width):
-            for yi in range(pp.height):
-                if board[xi][yi]:
-                    logDebug(str([(xi, yi), board[xi][yi]]))
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
 def brain_opponents(x, y):
-    global board
     if isFree(x, y):
-        global last_point, node
-        if last_point is None:
-            node = Node(board, (x, y), [], 2)
-        else:
-            node = node.towards((x, y))
         board[x][y] = 2
+        global actions_adj, features_my, features_op, last_point
+        actions_adj = update_actions(board, actions_adj, x, y)
+        features_my, features_op = update_features(board, x, y, features_my, features_op)
         last_point = (x, y)
     else:
         pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
@@ -117,27 +78,28 @@ def brain_takeback(x, y):
 
 def brain_turn():
     try:
-        global tick
-        tick = time.time()
+        logDebug('actions_adj:  ' + str(actions_adj))
         if pp.terminateAI:
             return
+        # at beginning, no stones
         if not last_point:
             action = (int(pp.width / 2), int(pp.height / 2))
             x, y = action
             pp.do_mymove(x, y)
             return
 
+        fea_my = copy.deepcopy(features_my)
+        fea_op = copy.deepcopy(features_op)
         action = fast_kill_action(board, 1)
-        logDebug(str(action))
+        logDebug('fast_kill:' + str(action))
         if not action:
-            solve = MCTS_Algorithm(node)
-            action = solve.UCT()
+            board_copy = copy.deepcopy(board)
+            actions = copy.deepcopy(actions_adj)
+            mcts_player = MCTS(board_copy, 1, actions, fea_my, fea_op)
+            action = mcts_player.get_action()
         x, y = action
         pp.do_mymove(x, y)
-    except Exception as e:
-        logDebug(str(e.args))
-        logDebug(str(traceback.format_exc()))
-        # pass
+    except:
         logTraceBack()
 
 
@@ -151,6 +113,8 @@ def brain_about():
 
 if DEBUG_EVAL:
     import win32gui
+
+
     def brain_eval(x, y):
         # check if it works as expected
         wnd = win32gui.GetForegroundWindow()
@@ -161,118 +125,7 @@ if DEBUG_EVAL:
         win32gui.ReleaseDC(wnd, dc)
 
 
-# weight
-coefmy = [1e11, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
-coefop = [1e11, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
 
-
-def update_score_string(s, position, chg=False):
-    global score
-
-    if s in string_score.keys():
-        if chg:
-            score = score + string_score[s]
-        return string_score[s]
-
-    score_origin = score
-
-    i = 0
-    for goal in pattern1:
-        num = 0
-        for mod in goal:
-            num += len(regex.findall(mod, s, overlapped=True))
-        score += num * coefmy[i]
-        i += 1
-    i = 0
-    for goal in pattern2:
-        num = 0
-        for mod in goal:
-            num += len(regex.findall(mod, s, overlapped=True))
-        score -= num * coefop[i]
-        i += 1
-
-    s = s[:position] + '0' + s[position+1:]
-    i = 0
-    for goal in pattern1:
-        num = 0
-        for mod in goal:
-            num += len(regex.findall(mod, s, overlapped=True))
-        score -= num * coefmy[i]
-        i += 1
-    i = 0
-    for goal in pattern2:
-        num = 0
-        for mod in goal:
-            num += len(regex.findall(mod, s, overlapped=True))
-        score += num * coefop[i]
-        i += 1
-
-    string_score[s] = score - score_origin
-    s = ''.join(reversed(s))
-    string_score[s] = score - score_origin
-
-    ans = score - score_origin
-    if not chg:
-        score = score_origin
-
-    return ans
-
-
-def update_score(x, y, chg=True):
-    k = 5  # 左右5个点
-    change = 0
-    # row
-    row = ''
-    position = 0
-    for i in range(x - k, x + k + 1):
-        if 0 <= i < pp.width:
-            row += str(board[i][y])
-            if i == x:
-                position = len(row) - 1
-        else:
-            row += '#'
-    change += update_score_string(row, position, chg)
-    # col
-    col = ''
-    for j in range(y - k, y + k + 1):
-        if 0 <= j < pp.height:
-            col += str(board[x][j])
-            if j == y:
-                position = len(col) - 1
-        else:
-            col += '#'
-    change += update_score_string(col, position, chg)
-    # diag
-    diag = ''
-    for i in range(-k, k + 1):
-        if 0 <= (x + i) < pp.width and 0 <= (y + i) < pp.width:
-            diag += str(board[x + i][y + i])
-            if i == 0:
-                position = len(diag) - 1
-        else:
-            diag += '#'
-    change += update_score_string(diag, position, chg)
-    # oblique diag
-    obdiag = ''
-    for i in range(-k, k + 1):
-        if 0 <= (x + i) < pp.width and 0 <= (y - i) < pp.width:
-            obdiag += str(board[x + i][y - i])
-            if i == 0:
-                position = len(obdiag) - 1
-        else:
-            obdiag += '#'
-    change += update_score_string(obdiag, position, chg)
-    return change
-
-
-def update_actions(bd, actions, x, y, k=1):
-    if (x, y) in actions:
-        actions.remove((x, y))
-    for i in range(x - k, x + k + 1):
-        for j in range(y - k, y + k + 1):
-            if isfree(bd, i, j) and (i, j) not in actions:
-                actions.append((i, j))
-    return
 
 
 ######################################################################
@@ -281,7 +134,7 @@ def update_actions(bd, actions, x, y, k=1):
 ######################################################################
 
 # define a file for logging ...
-DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/2.MC-tree-search/log.log"
+DEBUG_LOGFILE = "D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/MCTS/MCTS.log"
 # ...and clear it initially
 with open(DEBUG_LOGFILE, "w") as f:
     pass
@@ -302,20 +155,6 @@ def logTraceBack():
         f.flush()
     raise
 
-
-'''
-# use logDebug wherever
-# use try-except (with logTraceBack in except branch) to get exception info
-# an example of problematic function
-def brain_turn():
-    logDebug("some message 1")
-    try:
-        logDebug("some message 2")
-        1. / 0.  # some code raising an exception
-        logDebug("some message 3")  # not logged, as it is after error
-    except:
-        logTraceBack()
-'''
 
 ######################################################################
 
