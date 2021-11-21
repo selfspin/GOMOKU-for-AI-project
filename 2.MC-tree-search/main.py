@@ -2,6 +2,7 @@ import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import time
 import traceback
+import regex
 from MCTS import *
 from fast_actions import *
 
@@ -11,7 +12,30 @@ MAX_BOARD = 100
 MAX_DEPTH = 10
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
 last_point = None
+pattern1 = [['11111'],
+            ['011110', '0101110', '0110110', '0111010'],
+            ['11110', '11101', '11011', '10111', '01111'],
+            ['1111'],
+            ['01110', '010110', '011010'],
+            ['11100', '11010', '10110', '00111', '01101', '01011'],
+            ['111', '1011', '1101'],
+            ['0110', '01010'],
+            ['110', '011'],
+            ['11']
+            ]
+pattern2 = [['22222'],
+            ['022220', '0202220', '0220220', '0222020'],
+            ['22220', '22202', '22022', '20222', '02222'],
+            ['2222'],
+            ['02220', '020220', '022020'],
+            ['22200', '22020', '20220', '00222', '02202', '02022'],
+            ['222', '2022', '2202'],
+            ['0220', '02020'],
+            ['220', '022'],
+            ['22']
+            ]
 string_score = {}
+score = 0
 tick = time.time()
 node = None
 
@@ -33,6 +57,8 @@ def brain_restart():
     global node, last_point
     node = None
     last_point = None
+    global score
+    score = 0
     pp.pipeOut("OK")
 
 
@@ -50,6 +76,7 @@ def brain_my(x, y):
             node = node.towards((x, y))
         board[x][y] = 1
     else:
+        logDebug(str(board))
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
@@ -125,6 +152,111 @@ if DEBUG_EVAL:
         c = str(board[x][y])
         win32gui.ExtTextOut(dc, rc[2] - 15, 3, 0, None, c, ())
         win32gui.ReleaseDC(wnd, dc)
+
+
+# weight
+coefmy = [1e11, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
+coefop = [1e11, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
+
+
+def update_score_string(s, position, chg=False):
+    global score
+
+    if s in string_score.keys():
+        if chg:
+            score = score + string_score[s]
+        return string_score[s]
+
+    score_origin = score
+
+    i = 0
+    for goal in pattern1:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped=True))
+        score += num * coefmy[i]
+        i += 1
+    i = 0
+    for goal in pattern2:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped=True))
+        score -= num * coefop[i]
+        i += 1
+
+    s = s[:position] + '0' + s[position+1:]
+    i = 0
+    for goal in pattern1:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped=True))
+        score -= num * coefmy[i]
+        i += 1
+    i = 0
+    for goal in pattern2:
+        num = 0
+        for mod in goal:
+            num += len(regex.findall(mod, s, overlapped=True))
+        score += num * coefop[i]
+        i += 1
+
+    string_score[s] = score - score_origin
+    s = ''.join(reversed(s))
+    string_score[s] = score - score_origin
+
+    ans = score - score_origin
+    if not chg:
+        score = score_origin
+
+    return ans
+
+
+def update_score(x, y, chg=True):
+    k = 5  # 左右5个点
+    change = 0
+    # row
+    row = ''
+    position = 0
+    for i in range(x - k, x + k + 1):
+        if 0 <= i < pp.width:
+            row += str(board[i][y])
+            if i == x:
+                position = len(row) - 1
+        else:
+            row += '#'
+    change += update_score_string(row, position, chg)
+    # col
+    col = ''
+    for j in range(y - k, y + k + 1):
+        if 0 <= j < pp.height:
+            col += str(board[x][j])
+            if j == y:
+                position = len(col) - 1
+        else:
+            col += '#'
+    change += update_score_string(col, position, chg)
+    # diag
+    diag = ''
+    for i in range(-k, k + 1):
+        if 0 <= (x + i) < pp.width and 0 <= (y + i) < pp.width:
+            diag += str(board[x + i][y + i])
+            if i == 0:
+                position = len(diag) - 1
+        else:
+            diag += '#'
+    change += update_score_string(diag, position, chg)
+    # oblique diag
+    obdiag = ''
+    for i in range(-k, k + 1):
+        if 0 <= (x + i) < pp.width and 0 <= (y - i) < pp.width:
+            obdiag += str(board[x + i][y - i])
+            if i == 0:
+                position = len(obdiag) - 1
+        else:
+            obdiag += '#'
+    change += update_score_string(obdiag, position, chg)
+    return change
+
 
 
 def update_actions(bd, actions, x, y, k=1):

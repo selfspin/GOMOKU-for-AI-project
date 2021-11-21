@@ -102,11 +102,9 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    board_new = copy.deepcopy(board)
-                    board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    board[x][y] = 3 - color
+                    value = ab.update_score(x, y, False)
+                    board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -123,10 +121,9 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    ab.board[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    board[x][y] = 3 - color
+                    value = ab.update_score(x, y, False)
+                    board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -143,11 +140,9 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    board_new = copy.deepcopy(board)
-                    board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    board[x][y] = 3 - color
+                    value = ab.update_score(x, y, False)
+                    board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value
@@ -164,11 +159,9 @@ def search_four_op(board, color):
                 action = None
                 for a in actions:
                     x, y = a
-                    board_new = copy.deepcopy(board)
-                    board_new[x][y] = 3 - color
-                    chg = ab.update_score(x, y, False)
-                    value = ab.utility() + chg
-                    ab.board[x][y] = 0
+                    board[x][y] = 3 - color
+                    value = ab.update_score(x, y, False)
+                    board[x][y] = 0
                     if value > max_utility:
                         action = a
                         max_utility = value

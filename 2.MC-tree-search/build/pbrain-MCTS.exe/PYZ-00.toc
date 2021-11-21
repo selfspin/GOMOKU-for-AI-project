@@ -684,6 +684,15 @@
    'D:\\Desktop\\课程及其他\\人工智能\\final-pj\\Final '
    'Project\\GOMOKU-for-AI-project\\2.MC-tree-search\\MCTS.py',
    'PYMODULE'),
+  ('regex',
+   'c:\\users\\姜\\appdata\\local\\programs\\python\\python38\\lib\\site-packages\\regex\\__init__.py',
+   'PYMODULE'),
+  ('regex.regex',
+   'c:\\users\\姜\\appdata\\local\\programs\\python\\python38\\lib\\site-packages\\regex\\regex.py',
+   'PYMODULE'),
+  ('regex._regex_core',
+   'c:\\users\\姜\\appdata\\local\\programs\\python\\python38\\lib\\site-packages\\regex\\_regex_core.py',
+   'PYMODULE'),
   ('pisqpipe',
    'D:\\Desktop\\课程及其他\\人工智能\\final-pj\\Final '
    'Project\\GOMOKU-for-AI-project\\2.MC-tree-search\\pisqpipe.py',

@@ -54,7 +54,7 @@ class Node:
         self.son = {}
 
         x, y = self.a
-        board[x][y] = color
+        self.state[x][y] = self.color
         update_actions(self.state, self.A, x, y)
 
     def towards(self, action):
@@ -91,11 +91,12 @@ class MCTS_Algorithm:
 
     def UCT(self):
         for i in range(self.max_actions):
-            logDebug(str(i))
+            # logDebug(str(i))
             node = self.Tree_Policy(self.root)
             r = self.policy(node)
             self.back(node, r)
         rt = self.root
+        logDebug(str(rt.son))
         return max([(v.reward/v.visit_count + sqrt(log(rt.visit_count)/v.visit_count), v.a)
                     for v in rt.son.values()])[1]
 
