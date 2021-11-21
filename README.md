@@ -26,7 +26,7 @@ Here I present the approach using [PyInstaller](http://pyinstaller.org) and Wind
 To compile the example, use the following command line command:
 ```
 cd C:\path\where\the\files\were\saved
-pyinstaller absearch.py pisqpipe.py --name pbrain-absearch.exe --onefile
+pyinstaller main.py pisqpipe.py --name pbrain-MCTS.exe --onefile
 ```
 
 Note: the executables `pip.exe` and `pyinstaller.exe` might need full path, in my case I used `C:\Python27\Scripts\pip.exe` and `C:\Python27\Scripts\pyinstaller.exe`.
