@@ -5,7 +5,7 @@ from math import sqrt, log
 
 
 def have_winner(bd):
-    # TODO:返回获胜的颜色，没有就返回0
+    # 返回获胜的颜色，没有就返回0
     boardLength = pp.width
     # column
     for x in range(boardLength - 4):
@@ -91,6 +91,7 @@ class MCTS_Algorithm:
 
     def UCT(self):
         for i in range(self.max_actions):
+            logDebug(str(i))
             node = self.Tree_Policy(self.root)
             r = self.policy(node)
             self.back(node, r)
@@ -129,10 +130,11 @@ class MCTS_Algorithm:
         elif x == 2:
             return 0
         else:
-            return 0.3
+            return 0.05
 
     def back(self, node, r):
         while node is not None:
             node.visit_count += 1
             node.reward += r
             node = node.fa
+        return

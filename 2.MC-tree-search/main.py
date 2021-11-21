@@ -1,6 +1,7 @@
 import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 import time
+import traceback
 from MCTS import *
 from fast_actions import *
 
@@ -93,12 +94,15 @@ def brain_turn():
             return
 
         action = fast_kill_action(board, 1)
+        logDebug(str(action))
         if not action:
             solve = MCTS_Algorithm(node)
             action = solve.UCT()
         x, y = action
         pp.do_mymove(x, y)
-    except:
+    except Exception as e:
+        logDebug(str(e.args))
+        logDebug(str(traceback.format_exc()))
         # pass
         logTraceBack()
 
