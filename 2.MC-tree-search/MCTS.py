@@ -43,8 +43,8 @@ def have_winner(bd):
 
 
 class Node:
-    def __init__(self, board, from_action, action, color, fa=None):  # 从board开始，下了from_action一步
-        self.state = board.copy()
+    def __init__(self, bd, from_action, action, color, fa=None):  # 从board开始，下了from_action一步
+        self.state = bd.copy()
         self.a = from_action
         self.reward = 0
         self.visit_count = 1
@@ -61,7 +61,7 @@ class Node:
         if action in self.son.keys():
             self.son[action].fa = None
             return self.son[action]
-        return node(self.state, action, self.A, 3 - self.color)
+        return Node(self.state, action, self.A, 3 - self.color)
 
     def is_terminal(self, depth):
         if depth > MAX_DEPTH or have_winner(self.state):
@@ -112,13 +112,14 @@ class MCTS_Algorithm:
         return node
 
     def policy(self, node):
-        bd = node.state
+        bd = node.state.copy()
         now_color = node.color
-        act_list = node.A
+        act_list = node.A.copy()
         depth = 0
         while not have_winner(bd) and depth < 10:
             act = fast_kill_action(bd, now_color)
             if act is None:
+                logDebug(str(act_list))
                 act = random.choice(act_list)
             x, y = act
             bd[x][y] = now_color

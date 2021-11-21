@@ -62,13 +62,17 @@ def brain_restart():
     pp.pipeOut("OK")
 
 
-def isFree(bd, x, y):
-    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and bd[x][y] == 0
+def isFree(x, y):
+    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and board[x][y] == 0
 
+
+def isfree(bd, x, y):
+    return x >= 0 and y >= 0 and x < pp.width and y < pp.height and bd[x][y] == 0
 
 def brain_my(x, y):
     global board
-    if isFree(board, x, y):
+    logDebug('my move' + str((x, y)))
+    if isFree(x, y):
         global node
         if last_point is None:
             node = Node(board, (x, y), [], 1)
@@ -76,13 +80,16 @@ def brain_my(x, y):
             node = node.towards((x, y))
         board[x][y] = 1
     else:
-        logDebug(str(board))
+        for xi in range(pp.width):
+            for yi in range(pp.height):
+                if board[xi][yi]:
+                    logDebug(str([(xi, yi), board[xi][yi]]))
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
 def brain_opponents(x, y):
     global board
-    if isFree(board, x, y):
+    if isFree(x, y):
         global last_point, node
         if last_point is None:
             node = Node(board, (x, y), [], 2)
@@ -95,7 +102,7 @@ def brain_opponents(x, y):
 
 
 def brain_block(x, y):
-    if isFree(board, x, y):
+    if isFree(x, y):
         board[x][y] = 3
     else:
         pp.pipeOut("ERROR winning move [{},{}]".format(x, y))
@@ -258,13 +265,12 @@ def update_score(x, y, chg=True):
     return change
 
 
-
 def update_actions(bd, actions, x, y, k=1):
     if (x, y) in actions:
         actions.remove((x, y))
     for i in range(x - k, x + k + 1):
         for j in range(y - k, y + k + 1):
-            if isFree(bd, i, j) and (i, j) not in actions:
+            if isfree(bd, i, j) and (i, j) not in actions:
                 actions.append((i, j))
     return
 
