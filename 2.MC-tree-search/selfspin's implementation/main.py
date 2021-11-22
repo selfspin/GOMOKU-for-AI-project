@@ -78,10 +78,6 @@ def brain_my(x, y):
             node = node.towards((x, y))
         board[x][y] = 1
     else:
-        for xi in range(pp.width):
-            for yi in range(pp.height):
-                if board[xi][yi]:
-                    logDebug(str([(xi, yi), board[xi][yi]]))
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
@@ -126,17 +122,17 @@ def brain_turn():
             return
 
         action = fa.fast_kill_action(board, 1)
-        logDebug(str(action))
+        # logDebug(str(action))
         if not action:
             solve = MCTS.MCTS_Algorithm(node)
             action = solve.UCT()
         x, y = action
         pp.do_mymove(x, y)
     except Exception as e:
-        logDebug(str(e.args))
-        logDebug(str(traceback.format_exc()))
-        # pass
-        logTraceBack()
+        # logDebug(str(e.args))
+        # logDebug(str(traceback.format_exc()))
+        pass
+        # logTraceBack()
 
 
 def brain_end():
@@ -267,7 +263,7 @@ def update_actions(bd, actions, x, y, k=1):
 # A possible way how to debug brains.
 # To test it, just "uncomment" it (delete enclosing """)
 ######################################################################
-
+'''
 # define a file for logging ...
 DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/2.MC-tree-search/log.log"
 # ...and clear it initially
@@ -290,7 +286,7 @@ def logTraceBack():
         f.flush()
     raise
 
-
+'''
 '''
 # use logDebug wherever
 # use try-except (with logTraceBack in except branch) to get exception info

@@ -6,6 +6,9 @@ import pisqpipe as pp
 from math import sqrt, log
 
 
+MAX_POINT = 8
+
+
 def have_winner(bd):
     # 返回获胜的颜色，没有就返回0
     boardLength = pp.width
@@ -61,6 +64,12 @@ class Node:
         mn.update_actions(self.state, self.A, x, y)
         self.score += mn.update_score(self.state, x, y)
 
+        if color == 1:
+            self.A.sort(key=lambda a: mn.update_score(self.state, a[0], a[1]), reverse=True)
+        else:
+            self.A.sort(key=lambda a: mn.update_score(self.state, a[0], a[1]))
+        self.A = self.A[0:min(MAX_POINT, len(self.A))]
+
     def towards(self, action):
         if action in self.son.keys():
             self.son[action].fa = None
@@ -113,13 +122,13 @@ class MCTS_Algorithm:
 
     def UCT(self):
         for i in range(self.max_actions):
-            mn.logDebug(str(i))
+            # mn.logDebug(str(i))
             node = self.Tree_Policy(self.root)
-            mn.logDebug(str(self.root.A))
+            # mn.logDebug(str(self.root.A))
             r = self.policy(node)
             self.back(node, r)
         rt = self.root
-        mn.logDebug(str(rt.son))
+        # mn.logDebug(str(rt.son))
         return max([(v.reward/v.visit_count + sqrt(log(rt.visit_count)/v.visit_count), v.a)
                     for v in rt.son.values()])[1]
 
