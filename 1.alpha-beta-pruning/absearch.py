@@ -7,7 +7,8 @@ from fast_actions import *
 pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
 
 MAX_BOARD = 100
-MAX_DEPTH = 2
+MAX_DEPTH = 4
+MAX_POINT = 10
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
 actions = []
 last_point = None
@@ -69,7 +70,7 @@ def brain_my(x, y):
     if isFree(x, y):
         board[x][y] = 1
         update_actions(x, y)
-        update_score(x, y)
+        update_score(board, x, y)
     else:
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
@@ -80,7 +81,7 @@ def brain_opponents(x, y):
         global last_point
         update_actions(x, y)
         last_point = (x, y)
-        update_score(x, y)
+        update_score(board, x, y)
     else:
         pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
 
@@ -105,7 +106,7 @@ def brain_turn():
         tick = time.time()
         if pp.terminateAI:
             return
-        logDebug('我的回合')
+        # logDebug('我的回合')
         if not last_point:
             action = (int(pp.width / 2), int(pp.height / 2))
             x, y = action
@@ -118,8 +119,8 @@ def brain_turn():
         x, y = action
         pp.do_mymove(x, y)
     except:
-        # pass
-        logTraceBack()
+        pass
+        # logTraceBack()
 
 
 def brain_end():
@@ -199,7 +200,7 @@ def update_score_string(s, position, chg=True):
     return ans
 
 
-def update_score(x, y, chg=True):
+def update_score(bd, x, y, chg=True):
     k = 5  # 左右5个点
     change = 0
     # row
@@ -207,7 +208,7 @@ def update_score(x, y, chg=True):
     position = 0
     for i in range(x - k, x + k + 1):
         if 0 <= i < pp.width:
-            row += str(board[i][y])
+            row += str(bd[i][y])
             if i == x:
                 position = len(row) - 1
         else:
@@ -217,7 +218,7 @@ def update_score(x, y, chg=True):
     col = ''
     for j in range(y - k, y + k + 1):
         if 0 <= j < pp.height:
-            col += str(board[x][j])
+            col += str(bd[x][j])
             if j == y:
                 position = len(col) - 1
         else:
@@ -227,7 +228,7 @@ def update_score(x, y, chg=True):
     diag = ''
     for i in range(-k, k + 1):
         if 0 <= (x + i) < pp.width and 0 <= (y + i) < pp.width:
-            diag += str(board[x + i][y + i])
+            diag += str(bd[x + i][y + i])
             if i == 0:
                 position = len(diag) - 1
         else:
@@ -237,7 +238,7 @@ def update_score(x, y, chg=True):
     obdiag = ''
     for i in range(-k, k + 1):
         if 0 <= (x + i) < pp.width and 0 <= (y - i) < pp.width:
-            obdiag += str(board[x + i][y - i])
+            obdiag += str(bd[x + i][y - i])
             if i == 0:
                 position = len(obdiag) - 1
         else:
@@ -291,7 +292,7 @@ def restore_score(chg):
 
 
 def sort_key(x):
-    return update_score(x[0], x[1], chg=False)
+    return update_score(board, x[0], x[1], chg=False)
 
 
 def max_value(alpha, beta, depth):
@@ -307,13 +308,14 @@ def max_value(alpha, beta, depth):
     if len(actions) != 0:
         action_list = actions.copy()
         action_list.sort(key=sort_key, reverse=True)
+        action_list = action_list[0:min(MAX_POINT, len(action_list))]
         for a in action_list:
             board[a[0]][a[1]] = 1
             add_action, del_action = update_actions(a[0], a[1])
-            chg = update_score(a[0], a[1])
-            logDebug('max_move:' + str(a))
+            chg = update_score(board, a[0], a[1])
+            # logDebug('max_move:' + str(a))
             move_v, move_action = min_value(alpha, beta, depth + 1)
-            logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
+            # logDebug('min_final_move:' + str(move_action) + ' value:' + str(move_v))
             board[a[0]][a[1]] = 0
             restore_actions(add_action, del_action)
             restore_score(chg)
@@ -335,7 +337,7 @@ def max_value(alpha, beta, depth):
 
 
 def min_value(alpha, beta, depth):
-    logDebug('min_act_list' + str(actions))
+    # logDebug('min_act_list' + str(actions))
     if terminal_test(depth):
         # logDebug('terminal min ' + str(depth))
         if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn)/1000 - 0.5:
@@ -348,12 +350,13 @@ def min_value(alpha, beta, depth):
     if len(actions) != 0:
         action_list = actions.copy()
         action_list.sort(key=sort_key)
+        action_list = action_list[0:min(MAX_POINT, len(action_list))]
         for a in action_list:
             board[a[0]][a[1]] = 2
             add_action, del_action = update_actions(a[0], a[1])
-            chg = update_score(a[0], a[1])
+            chg = update_score(board, a[0], a[1])
             move_v, move_action = max_value(alpha, beta, depth + 1)
-            logDebug('min_move:' + str(a) + ' value:' + str(move_v))
+            # logDebug('min_move:' + str(a) + ' value:' + str(move_v))
             restore_actions(add_action, del_action)
             restore_score(chg)
             board[a[0]][a[1]] = 0
@@ -384,7 +387,7 @@ def alpha_beta_search(color):
 # A possible way how to debug brains.
 # To test it, just "uncomment" it (delete enclosing """)
 ######################################################################
-
+'''
 # define a file for logging ...
 DEBUG_LOGFILE = "D:/Desktop/课程及其他/人工智能/final-pj/Final Project/GOMOKU-for-AI-project/1.alpha-beta-pruning/log.log"
 # ...and clear it initially
@@ -407,7 +410,7 @@ def logTraceBack():
         f.flush()
     raise
 
-
+'''
 '''
 # use logDebug wherever
 # use try-except (with logTraceBack in except branch) to get exception info

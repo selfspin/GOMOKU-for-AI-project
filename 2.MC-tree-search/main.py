@@ -3,8 +3,8 @@ from pisqpipe import DEBUG_EVAL, DEBUG
 import time
 import traceback
 import regex
-from MCTS import *
-from fast_actions import *
+import MCTS
+import fast_actions as fa
 
 pp.infotext = 'name="a-b-search", author="", version="1.0", country="China", www=""'
 
@@ -35,7 +35,6 @@ pattern2 = [['22222'],
             ['22']
             ]
 string_score = {}
-score = 0
 tick = time.time()
 node = None
 
@@ -71,11 +70,10 @@ def isfree(bd, x, y):
 
 def brain_my(x, y):
     global board
-    logDebug('my move' + str((x, y)))
     if isFree(x, y):
         global node
         if last_point is None:
-            node = Node(board, (x, y), [], 1)
+            node = MCTS.Node(board, (x, y), [], 1)
         else:
             node = node.towards((x, y))
         board[x][y] = 1
@@ -92,7 +90,7 @@ def brain_opponents(x, y):
     if isFree(x, y):
         global last_point, node
         if last_point is None:
-            node = Node(board, (x, y), [], 2)
+            node = MCTS.Node(board, (x, y), [], 2)
         else:
             node = node.towards((x, y))
         board[x][y] = 2
@@ -127,10 +125,10 @@ def brain_turn():
             pp.do_mymove(x, y)
             return
 
-        action = fast_kill_action(board, 1)
+        action = fa.fast_kill_action(board, 1)
         logDebug(str(action))
         if not action:
-            solve = MCTS_Algorithm(node)
+            solve = MCTS.MCTS_Algorithm(node)
             action = solve.UCT()
         x, y = action
         pp.do_mymove(x, y)
@@ -166,16 +164,10 @@ coefmy = [1e11, 1e8, 1e8, 0, 1e6, 7e1, 0, 7e1, 5, 0]
 coefop = [1e11, 5e7, 1e4, 0, 1e4, 5e1, 0, 7e1, 5, 0]
 
 
-def update_score_string(s, position, chg=False):
-    global score
-
+def update_score_string(s, position):
     if s in string_score.keys():
-        if chg:
-            score = score + string_score[s]
         return string_score[s]
-
-    score_origin = score
-
+    score = 0
     i = 0
     for goal in pattern1:
         num = 0
@@ -207,18 +199,14 @@ def update_score_string(s, position, chg=False):
         score += num * coefop[i]
         i += 1
 
-    string_score[s] = score - score_origin
+    string_score[s] = score
     s = ''.join(reversed(s))
-    string_score[s] = score - score_origin
+    string_score[s] = score
 
-    ans = score - score_origin
-    if not chg:
-        score = score_origin
-
-    return ans
+    return score
 
 
-def update_score(x, y, chg=True):
+def update_score(bd, x, y):
     k = 5  # 左右5个点
     change = 0
     # row
@@ -226,42 +214,42 @@ def update_score(x, y, chg=True):
     position = 0
     for i in range(x - k, x + k + 1):
         if 0 <= i < pp.width:
-            row += str(board[i][y])
+            row += str(bd[i][y])
             if i == x:
                 position = len(row) - 1
         else:
             row += '#'
-    change += update_score_string(row, position, chg)
+    change += update_score_string(row, position)
     # col
     col = ''
     for j in range(y - k, y + k + 1):
         if 0 <= j < pp.height:
-            col += str(board[x][j])
+            col += str(bd[x][j])
             if j == y:
                 position = len(col) - 1
         else:
             col += '#'
-    change += update_score_string(col, position, chg)
+    change += update_score_string(col, position)
     # diag
     diag = ''
     for i in range(-k, k + 1):
         if 0 <= (x + i) < pp.width and 0 <= (y + i) < pp.width:
-            diag += str(board[x + i][y + i])
+            diag += str(bd[x + i][y + i])
             if i == 0:
                 position = len(diag) - 1
         else:
             diag += '#'
-    change += update_score_string(diag, position, chg)
+    change += update_score_string(diag, position)
     # oblique diag
     obdiag = ''
     for i in range(-k, k + 1):
         if 0 <= (x + i) < pp.width and 0 <= (y - i) < pp.width:
-            obdiag += str(board[x + i][y - i])
+            obdiag += str(bd[x + i][y - i])
             if i == 0:
                 position = len(obdiag) - 1
         else:
             obdiag += '#'
-    change += update_score_string(obdiag, position, chg)
+    change += update_score_string(obdiag, position)
     return change
 
 

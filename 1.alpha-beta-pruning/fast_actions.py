@@ -103,7 +103,7 @@ def search_four_op(board, color):
                 for a in actions:
                     x, y = a
                     board[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = ab.update_score(board, x, y, False)
                     board[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -122,7 +122,7 @@ def search_four_op(board, color):
                 for a in actions:
                     x, y = a
                     board[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = ab.update_score(board, x, y, False)
                     board[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -141,7 +141,7 @@ def search_four_op(board, color):
                 for a in actions:
                     x, y = a
                     board[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = ab.update_score(board, x, y, False)
                     board[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -160,7 +160,7 @@ def search_four_op(board, color):
                 for a in actions:
                     x, y = a
                     board[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = ab.update_score(board, x, y, False)
                     board[x][y] = 0
                     if value > max_utility:
                         action = a

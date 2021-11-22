@@ -1,6 +1,5 @@
 import pisqpipe as pp
-import main as ab
-import copy
+import main as mn
 
 
 def fast_kill_action(bd, color):
@@ -103,7 +102,7 @@ def search_four_op(bd, color):
                 for a in actions:
                     x, y = a
                     bd[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = mn.update_score(bd, x, y)
                     bd[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -122,7 +121,7 @@ def search_four_op(bd, color):
                 for a in actions:
                     x, y = a
                     bd[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = mn.update_score(bd, x, y)
                     bd[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -141,7 +140,7 @@ def search_four_op(bd, color):
                 for a in actions:
                     x, y = a
                     bd[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = mn.update_score(bd, x, y)
                     bd[x][y] = 0
                     if value > max_utility:
                         action = a
@@ -160,7 +159,7 @@ def search_four_op(bd, color):
                 for a in actions:
                     x, y = a
                     bd[x][y] = 3 - color
-                    value = ab.update_score(x, y, False)
+                    value = mn.update_score(bd, x, y)
                     bd[x][y] = 0
                     if value > max_utility:
                         action = a
