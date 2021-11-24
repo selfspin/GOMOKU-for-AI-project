@@ -99,8 +99,6 @@ class Node:
                     maxv = q
                     a = v
             return a
-            # return max([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
-            #            for v in self.son.values()])[1]
         else:
             minv = float('inf')
             a = None
@@ -111,8 +109,6 @@ class Node:
                     minv = q
                     a = v
             return a
-            # return min([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
-            #             for v in self.son.values()])[1]
 
 
 class MCTS_Algorithm:
