@@ -1,4 +1,5 @@
 import copy
+import time
 import main as mn
 import fast_actions as fa
 import random
@@ -99,8 +100,6 @@ class Node:
                     maxv = q
                     a = v
             return a
-            # return max([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
-            #            for v in self.son.values()])[1]
         else:
             minv = float('inf')
             a = None
@@ -111,9 +110,6 @@ class Node:
                     minv = q
                     a = v
             return a
-            # return min([(v.reward / v.visit_count + sqrt(log(self.visit_count) / v.visit_count), v)
-            #             for v in self.son.values()])[1]
-
 
 class MCTS_Algorithm:
     def __init__(self, node, max_actions=30):
@@ -121,16 +117,16 @@ class MCTS_Algorithm:
         self.max_actions = max_actions
 
     def UCT(self):
+        tick = time.time()
         for i in range(self.max_actions):
-            # mn.logDebug(str(i))
             node = self.Tree_Policy(self.root)
-            # mn.logDebug(str(self.root.A))
             r = self.policy(node)
             self.back(node, r)
+            if time.time() - tick > min(pp.info_time_left, pp.info_timeout_turn) / 1000 - 0.5:
+                break
         rt = self.root
-        # mn.logDebug(str(rt.son))
-        return max([(v.reward/v.visit_count + sqrt(log(rt.visit_count)/v.visit_count), v.a)
-                    for v in rt.son.values()])[1]
+        return max([(v.reward/v.visit_count + sqrt(log(rt.visit_count)/v.visit_count)
+                     + v.score / log(v.visit_count + 1), v.a) for v in rt.son.values()])[1]
 
     def Tree_Policy(self, node):
         depth = 1
@@ -151,7 +147,6 @@ class MCTS_Algorithm:
         while not have_winner(bd) and depth < 10:
             act = fa.fast_kill_action(bd, now_color)
             if act is None:
-                # logDebug(str(act_list))
                 act = random.choice(act_list)
             x, y = act
             bd[x][y] = now_color
