@@ -240,7 +240,7 @@ class Board:
                 if q < bestq:
                     bestq = q
                     besta = a
-
+                    
         return bestq, besta
 
     def e_greedy(self):
