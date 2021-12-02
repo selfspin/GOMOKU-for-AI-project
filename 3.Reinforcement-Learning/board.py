@@ -3,6 +3,7 @@ from copy import deepcopy
 import regex
 
 patterns_my = [
+    ['11111'],
     ['011110'],
     ['11011'], ['11101', '10111'], ['11110', '01111'],
     ['001110', '011100'], ['011010', '010110'],
@@ -13,6 +14,7 @@ patterns_my = [
     ['10000', '01000', '00100', '00010', '00001']
 ]
 patterns_op = [
+    ['22222'],
     ['022220'],
     ['22022'], ['22202', '20222'], ['22220', '02222'],
     ['002220', '022200'], ['022020', '020220'],
@@ -164,16 +166,18 @@ class Board:
         lst = []
         # my
         for i in range(len(self.feature_my)):
-            if i == len(self.feature_my) - 1:
-                lst.append(self.feature_my[i])
+            num = self.feature_my[i]
+            if i == len(self.feature_my) - 1:  # turn
+                lst.append(num)
             else:
-                num = self.feature_my[i]
                 if num >= 1:
                     lst.append(int(self.turn == 1))
                     lst.append(int(self.turn == 2))
                 else:
                     lst.append(0)
                     lst.append(0)
+                if i == 0:  # 连5
+                    continue
                 for j in range(4):
                     if num >= 1:
                         lst.append(1)
@@ -183,16 +187,18 @@ class Board:
                 lst.append(num/2)
         # op
         for i in range(len(self.feature_op)):
+            num = self.feature_op[i]
             if i == len(self.feature_op) - 1:
-                lst.append(self.feature_op[i])
+                lst.append(num)
             else:
-                num = self.feature_op[i]
                 if num >= 1:
                     lst.append(int(self.turn == 1))
                     lst.append(int(self.turn == 2))
                 else:
                     lst.append(0)
                     lst.append(0)
+                if i == 0:  # 连5
+                    continue
                 for j in range(4):
                     if num >= 1:
                         lst.append(1)
