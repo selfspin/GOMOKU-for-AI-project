@@ -168,6 +168,12 @@ class Board:
                 lst.append(self.feature_my[i])
             else:
                 num = self.feature_my[i]
+                if num >= 1:
+                    lst.append(int(self.turn == 1))
+                    lst.append(int(self.turn == 2))
+                else:
+                    lst.append(0)
+                    lst.append(0)
                 for j in range(4):
                     if num >= 1:
                         lst.append(1)
@@ -181,6 +187,12 @@ class Board:
                 lst.append(self.feature_op[i])
             else:
                 num = self.feature_op[i]
+                if num >= 1:
+                    lst.append(int(self.turn == 1))
+                    lst.append(int(self.turn == 2))
+                else:
+                    lst.append(0)
+                    lst.append(0)
                 for j in range(4):
                     if num >= 1:
                         lst.append(1)
@@ -188,6 +200,9 @@ class Board:
                     else:
                         lst.append(0)
                 lst.append(num/2)
+        # offend
+        lst.append(int(self.offend == 1))
+        lst.append(int(self.offend == 2))
         return np.array(lst)
 
     def evaluation(self, feature=None):
