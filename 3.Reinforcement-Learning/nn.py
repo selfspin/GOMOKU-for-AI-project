@@ -2,21 +2,18 @@ import numpy as np
 
 
 class NN:
-    def __init__(self, learning_rate=0.01, params=None):
+    def __init__(self, learning_rate=0.001, params=None):
         self.learning_rate = learning_rate
         self.nn_architecture = [
-            {"input_dim": 40, "output_dim": 60, "activation": "relu"},
-            {"input_dim": 60, "output_dim": 40, "activation": "relu"},
-            {"input_dim": 40, "output_dim": 20, "activation": "relu"},
-            {"input_dim": 20, "output_dim": 10, "activation": "relu"},
-            {"input_dim": 10, "output_dim": 1, "activation": "identity"}
+            {"input_dim": 302, "output_dim": 100, "activation": "relu"},
+            {"input_dim": 100, "output_dim": 1, "activation": "sigmoid"}
         ]
         if params is None:
             self.params = self.init_layers()
         else:
             self.params = params
 
-    def init_layers(self, seed=99):
+    def init_layers(self, seed=666):
         np.random.seed(seed)
         params_values = {}
 
@@ -26,9 +23,9 @@ class NN:
             layer_output_size = layer["output_dim"]
 
             params_values['W' + str(layer_idx)] = np.random.randn(
-                layer_output_size, layer_input_size) * 0.1
+                layer_output_size, layer_input_size) * 0.01
             params_values['b' + str(layer_idx)] = np.random.randn(
-                layer_output_size, 1) * 0.1
+                layer_output_size, 1) * 0.01
 
         return params_values
 
@@ -83,12 +80,13 @@ class NN:
             memory["A" + str(idx)] = A_prev
             memory["Z" + str(layer_idx)] = Z_curr
 
+
         return A_curr, memory
 
     def get_cost_value(self, Y_hat, Y):
         m = Y_hat.shape[1]
-        # cost = -1 / m * (np.dot(Y, np.log(Y_hat).T) + np.dot(1 - Y, np.log(1 - Y_hat).T))
-        cost = 1 / m * np.sum((Y - Y_hat) ** 2)
+        cost = -1 / m * (np.dot(Y, np.log(Y_hat).T) + np.dot(1 - Y, np.log(1 - Y_hat).T))
+        # cost = 1 / m * np.sum((Y - Y_hat) ** 2)
         return np.squeeze(cost)
 
     def single_layer_backward_propagation(self, dA_curr, W_curr, b_curr, Z_curr, A_prev, activation="relu"):
@@ -115,8 +113,8 @@ class NN:
         m = Y.shape[1]
         Y = Y.reshape(Y_hat.shape)
 
-        # dA_prev = - (np.divide(Y, Y_hat) - np.divide(1 - Y, 1 - Y_hat))
-        dA_prev = Y_hat - Y
+        dA_prev = - (np.divide(Y, Y_hat) - np.divide(1 - Y, 1 - Y_hat))
+        # dA_prev = Y_hat - Y
 
         for layer_idx_prev, layer in reversed(list(enumerate(self.nn_architecture))):
             layer_idx_curr = layer_idx_prev + 1
@@ -155,6 +153,7 @@ class NN:
             cost_history.append(cost)
 
             grads_values = self.full_backward_propagation(Y_hat, Y, cashe, params_values)
+            # print(grads_values)
             params_values = self.update(params_values, grads_values)
 
         self.params = params_values
