@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+from random import choice
 import regex
 
 patterns_my = [
@@ -10,8 +11,8 @@ patterns_my = [
     ['11001', '10011'], ['01110'], ['11010', '01101', '01011', '10110'], ['10101'],
     ['010010'], ['010100', '001010'], ['001100'], ['011000', '000110'],
     ['10001'], ['11000', '00011'], ['10010', '01001'], ['10100', '00101'], ['01010'],
-    ['010000', '000010'], ['001000', '000100'],
-    ['10000', '01000', '00100', '00010', '00001']
+    ['010000', '000010'], ['001000', '000100']
+    #['10000', '01000', '00100', '00010', '00001']
 ]
 patterns_op = [
     ['22222'],
@@ -21,8 +22,8 @@ patterns_op = [
     ['22002', '20022'], ['02220'], ['22020', '02202', '02022', '20220'], ['20202'],
     ['020020'], ['020200', '002020'], ['002200'], ['022000', '000220'],
     ['20002'], ['22000', '00022'], ['20020', '02002'], ['20200', '00202'], ['02020'],
-    ['020000', '000020'], ['002000', '000200'],
-    ['20000', '02000', '00200', '00020', '00002']
+    ['020000', '000020'], ['002000', '000200']
+    #['20000', '02000', '00200', '00020', '00002']
 ]
 
 
@@ -38,6 +39,8 @@ def update_feature_by_str(string, my_f, op_f, sign=1):
 
 class Board:
     def __init__(self, board, network, turn=1, offend=1, actions=None, explore_prob=0.2):
+        if actions is None:
+            actions = []
         self.board = np.array(board)
         self.network = network
         self.turn = turn
@@ -47,6 +50,7 @@ class Board:
         self.width = board.shape[0]
         self.height = board.shape[1]
         self._init_feature()
+        self.feature = self.extract_feature()
 
     def _init_feature(self):
         self.feature_my = np.zeros(len(patterns_my) + 1)
@@ -70,9 +74,9 @@ class Board:
                 else:
                     if 0 <= center + expand < self.height \
                             and 0 <= center - expand < self.height:
-                        string = str(int(self.board[center+expand][center-expand])) \
+                        string = str(int(self.board[center + expand][center - expand])) \
                                  + string \
-                                 + str(int(self.board[center-expand][center+expand]))
+                                 + str(int(self.board[center - expand][center + expand]))
                     else:
                         break
             update_feature_by_str(string, self.feature_my, self.feature_op)
@@ -81,13 +85,13 @@ class Board:
             string = ''
             for expand in range(self.height):
                 if expand == 0:
-                    string += str(int(self.board[self.height-1-center][center]))
+                    string += str(int(self.board[self.height - 1 - center][center]))
                 else:
                     if 0 <= center + expand < self.height \
                             and 0 <= center - expand < self.height:
-                        string = str(int(self.board[self.height-1-center-expand][center-expand])) \
+                        string = str(int(self.board[self.height - 1 - center - expand][center - expand])) \
                                  + string \
-                                 + str(int(self.board[self.height-1-center+expand][center+expand]))
+                                 + str(int(self.board[self.height - 1 - center + expand][center + expand]))
                     else:
                         break
             update_feature_by_str(string, self.feature_my, self.feature_op)
@@ -98,12 +102,12 @@ class Board:
         # row
         string = ''.join(str(int(self.board[i][y])) for i in range(self.width))
         update_feature_by_str(string, self.feature_my, self.feature_op)
-        string = string[0:x] + '0' + string[(x+1):self.width]
+        string = string[0:x] + '0' + string[(x + 1):self.width]
         update_feature_by_str(string, self.feature_my, self.feature_op, -1)
         # col
         string = ''.join(str(int(self.board[x][j])) for j in range(self.height))
         update_feature_by_str(string, self.feature_my, self.feature_op)
-        string = string[0:y] + '0' + string[(y+1):self.height]
+        string = string[0:y] + '0' + string[(y + 1):self.height]
         update_feature_by_str(string, self.feature_my, self.feature_op, -1)
         # diag
         string = str(int(self.board[x][y]))
@@ -139,7 +143,6 @@ class Board:
         self.turn = 3 - self.turn
         self.actions = self.update_actions(self.actions, x, y)
         self._update_feature(x, y)
-
 
     def update_actions(self, old_actions, x, y, k=2):
         actions = deepcopy(old_actions)
@@ -184,7 +187,7 @@ class Board:
                         num -= 1
                     else:
                         lst.append(0)
-                lst.append(num/2)
+                lst.append(num / 2)
         # op
         for i in range(len(self.feature_op)):
             num = self.feature_op[i]
@@ -205,11 +208,12 @@ class Board:
                         num -= 1
                     else:
                         lst.append(0)
-                lst.append(num/2)
+                lst.append(num / 2)
         # offend
         lst.append(int(self.offend == 1))
         lst.append(int(self.offend == 2))
-        return np.array(lst)
+        f = np.array(lst).reshape(len(lst), 1)
+        return f
 
     def evaluation(self, feature=None):
         if feature is None:
@@ -225,8 +229,8 @@ class Board:
         if self.turn == 1:
             bestq = float('-inf')
             for a in legal_actions:
-                newboard = self.board.copy()
-                newBoard = Board(newboard, self.network)
+                newBoard = deepcopy(self)
+                newBoard.update_board(a[0], a[1])
                 q = newBoard.evaluation()
                 if q > bestq:
                     bestq = q
@@ -234,23 +238,25 @@ class Board:
         else:
             bestq = float('inf')
             for a in legal_actions:
-                newboard = self.board.copy()
-                newBoard = Board(newboard, self.network)
+                newBoard = deepcopy(self)
+                newBoard.update_board(a[0], a[1])
                 q = newBoard.evaluation()
                 if q < bestq:
                     bestq = q
                     besta = a
-                    
+
         return bestq, besta
 
-    def e_greedy(self):
+    def e_greedy(self, e=None):
         if self.actions is None:
             self.actions = self.adjacent_actions
+        if e is None:
+            e = self.explore_prob
 
-        if np.random.rand() > self.explore_prob:
+        if np.random.rand() > e:
             _, action = self.Q_value(self.actions)
         else:
-            action = np.random.choice(self.actions)
+            action = choice(self.actions)
 
         return action
 
