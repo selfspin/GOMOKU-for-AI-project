@@ -47,8 +47,8 @@ class Board:
         self.offend = offend
         self.actions = actions
         self.explore_prob = explore_prob
-        self.width = board.shape[0]
-        self.height = board.shape[1]
+        self.width = self.board.shape[0]
+        self.height = self.board.shape[1]
         self._init_feature()
         self.feature = self.extract_feature()
 
@@ -141,11 +141,10 @@ class Board:
     def update_board(self, x, y):
         self.board[x, y] = self.turn
         self.turn = 3 - self.turn
-        self.actions = self.update_actions(self.actions, x, y)
+        self.update_actions(self.actions, x, y)
         self._update_feature(x, y)
 
-    def update_actions(self, old_actions, x, y, k=1):
-        actions = deepcopy(old_actions)
+    def update_actions(self, actions, x, y, k=1):
         if (x, y) in actions:
             actions.remove((x, y))
         for i in range(x - k, x + k + 1):
@@ -153,14 +152,14 @@ class Board:
                 if 0 <= i < self.width and 0 <= j < self.height \
                         and self.board[i][j] == 0 and (i, j) not in actions:
                     actions.append((i, j))
-        return actions
+        return
 
     def adjacent_actions(self, k=1):
         actions = []
         for x in np.arange(self.width):
-            for y in np.arrange(self.height):
+            for y in np.arange(self.height):
                 if self.board[x, y] > 0:
-                    actions = self.update_actions(actions, x, y, k)
+                    self.update_actions(actions, x, y, k)
         return actions
 
     def extract_feature(self):
