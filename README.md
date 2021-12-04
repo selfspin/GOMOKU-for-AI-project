@@ -6,6 +6,8 @@ DATA130008, School of Data Science, Fudan University
 
 absearch
 
+1223
+
 胜局：25=11+14，负局：11=7+4
 
 每手棋用时：986毫秒（最多12.9秒），每局用时：18秒
@@ -14,3 +16,12 @@ absearch
 
 ![absearch rank](https://github.com/selfspin/GOMOKU-for-AI-project/blob/main/figure/absearch.png)
 
+## MCTS
+
+mcts
+
+1109
+
+## RL
+
+selfspin：TSS快写死我了    2021.12.4
