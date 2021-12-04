@@ -308,6 +308,8 @@ par = par.reshape(1)[0]
 net = nn.NN(params=par)
 print(net.full_forward_propagation(x, par)[0])
 
+
 f = np.load('replay_feature.npy', allow_pickle=True)
 y = np.load('replay_target.npy', allow_pickle=True)
-_=net.train(f,y,100)
+_ = net.train(f, y, 10)
+print(net.full_forward_propagation(x, net.params)[0])

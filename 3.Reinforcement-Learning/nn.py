@@ -2,7 +2,7 @@ import numpy as np
 
 
 class NN:
-    def __init__(self, learning_rate=0.001, params=None):
+    def __init__(self, learning_rate=0.01, params=None):
         self.learning_rate = learning_rate
         self.nn_architecture = [
             {"input_dim": 302, "output_dim": 100, "activation": "relu"},

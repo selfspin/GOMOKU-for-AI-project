@@ -144,7 +144,7 @@ class Board:
         self.actions = self.update_actions(self.actions, x, y)
         self._update_feature(x, y)
 
-    def update_actions(self, old_actions, x, y, k=2):
+    def update_actions(self, old_actions, x, y, k=1):
         actions = deepcopy(old_actions)
         if (x, y) in actions:
             actions.remove((x, y))
@@ -155,7 +155,7 @@ class Board:
                     actions.append((i, j))
         return actions
 
-    def adjacent_actions(self, k=2):
+    def adjacent_actions(self, k=1):
         actions = []
         for x in np.arange(self.width):
             for y in np.arrange(self.height):
@@ -231,7 +231,7 @@ class Board:
             for a in legal_actions:
                 newBoard = deepcopy(self)
                 newBoard.update_board(a[0], a[1])
-                q = newBoard.evaluation()
+                q = newBoard.evaluation() + np.random.rand()/10000
                 if q > bestq:
                     bestq = q
                     besta = a
@@ -240,7 +240,7 @@ class Board:
             for a in legal_actions:
                 newBoard = deepcopy(self)
                 newBoard.update_board(a[0], a[1])
-                q = newBoard.evaluation()
+                q = newBoard.evaluation() + np.random.rand()/10000
                 if q < bestq:
                     bestq = q
                     besta = a
