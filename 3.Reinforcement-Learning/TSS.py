@@ -3,16 +3,22 @@ import numpy as np
 import regex
 
 live_3_my = ['011100', '011010']
-rest_4_my = ['01111', '10111', '11011', '11101', '11110']
+rest_4_my = ['01111', '10111', '11011']
 live_4_my = ['011110']
 win_my = ['11111']
 
+dict_block = {'011100': [1, 5], '011010': [1, 4, 6],
+              '01111': [1], '10111': [2], '11011': [3],
+              '022200': [1, 5], '022020': [1, 4, 6],
+              '02222': [1], '20222': [2], '22022': [3]
+              }
+
 live_3_op = ['022200', '022020']
-rest_4_op = ['02222', '20222', '22022', '22202', '22220']
+rest_4_op = ['02222', '20222', '22022']
 live_4_op = ['022220']
 win_op = ['22222']
 
-direction = [(1, 0), (1, 1), (0, 1), (1, -1)]
+direction = [(1, 1), (1, 0), (0, 1), (1, -1)]
 
 
 def pattern_exchange():
@@ -78,21 +84,22 @@ class TSS:
 
     def check_four(self, x, y, turn):
         flag = 0
-        dire = None  # 冲4所在方位
         turn = int(turn)
         if turn != int(live_3_my[0][1]):
             pattern_exchange()
 
+        pos = None
         for (dx, dy) in direction:
             s = str(turn)
             for i in range(1, 5):
                 if self.is_legal(x + i * dx, y + i * dy):
-                    s += self.num2str(self.board[x + i * dx][y + i * dy])
+                    s = self.num2str(self.board[x + i * dx][y + i * dy]) + s
                 else:
                     break
+            xypos = len(s) - 1
             for i in range(1, 5):
                 if self.is_legal(x - i * dx, y - i * dy):
-                    s = self.num2str(self.board[x - i * dx][y - i * dy]) + s
+                    s += self.num2str(self.board[x - i * dx][y - i * dy])
                 else:
                     break
 
@@ -101,66 +108,47 @@ class TSS:
                     return 'win', None
 
             for mod in rest_4_my:
-                if len(regex.findall(mod, s)) > 0:
+                if s.find(mod) >= 0:
                     flag += 1
-                    dire = (dx, dy)
+                    k = s.find(mod) + dict_block[mod][0] - 1 - xypos
+                    pos = (x - k*dx, y - k*dy)
                     if flag >= 2:
                         return 'win', None
                     break
-                elif len(regex.findall(self.reverse(mod), s)) > 0:
+                elif s.find(self.reverse(mod)) >= 0:
                     flag += 1
-                    dire = (dx, dy)
+                    k = s.find(self.reverse(mod)) + (len(mod) - dict_block[mod][0] + 1) - 1 - xypos
+                    pos = (x - k*dx, y - k*dy)
                     if flag >= 2:
                         return 'win', None
                     break
 
         if flag:
-            return 'rest', dire
+            return 'rest', pos
 
         return False, None
 
-    def block_four(self, x, y, turn, dx, dy):
-        change_x = None
-        change_y = None
+    def block_four(self, x, y, turn):
         # 封堵
-        for i in range(1, 5):
-            if self.is_free(x + i * dx, y + i * dy):
-                op_result, _ = self.check_four(x + i * dx, y + i * dy, op_turn(turn))
-                # 对手堵的时候形成冲4
-                if op_result:
-                    return False
-                change_x = x + i * dx
-                change_y = y + i * dy
-                break
-            elif not (self.is_legal(x + i * dx, y + i * dy) and self.board[x + i * dx][y + i * dy] == turn):
-                break
-        for i in range(1, 5):
-            if self.is_free(x - i * dx, y - i * dy):
-                op_result, _ = self.check_four(x - i * dx, y - i * dy, op_turn(turn))
-                # 对手堵的时候形成冲4
-                if op_result:
-                    return False
-                change_x = x - i * dx
-                change_y = y - i * dy
-                break
-            elif not (self.is_legal(x - i * dx, y - i * dy) and self.board[x - i * dx][y - i * dy] == turn):
-                break
-
-        return True, change_x, change_y
+        op_result, _ = self.check_four(x, y, op_turn(turn))
+        # 对手堵的时候形成冲4
+        if op_result:
+            return False
+        return True
 
     def VCF(self, x, y, turn):
         if self.check_five(x, y, turn):
             return True
-        result, dire = self.check_four(x, y, turn)
+        result, pos = self.check_four(x, y, turn)
         if result == 'win':
             return True
         elif result == 'rest':
             self.board[x][y] = turn
-            dx, dy = dire
-            done, change_x, change_y = self.block_four(x, y, turn, dx, dy)
-            if not done:  # 对手封堵过程形成冲4
+            bx, by = pos
+            if not self.block_four(bx, by, turn):  # 对手封堵过程形成冲4
+                self.board[x][y] = 0
                 return False
-            self.board[change_x][change_y] = op_turn(turn)
+            self.board[bx][by] = op_turn(turn)
 
             ans = False
             for dx, dy in direction:
@@ -171,11 +159,11 @@ class TSS:
                         continue
                     ans = ans or self.VCF(nx, ny, turn)
                     if ans:
-                        self.board[change_x][change_y] = 0
+                        self.board[bx][by] = 0
                         self.board[x][y] = 0
                         return True
 
-            self.board[change_x][change_y] = 0
+            self.board[bx][by] = 0
             self.board[x][y] = 0
             return False
         else:
@@ -185,6 +173,11 @@ class TSS:
         # 确定pattern
         if self.turn != int(live_3_my[0][1]):
             pattern_exchange()
+
+        # 自己成5
+        for (x, y) in self.acts:
+            if self.check_five(x, y, self.turn):
+                return x, y
 
         # 检查对手已有冲4
         for (x, y) in self.acts:
@@ -202,21 +195,24 @@ class TSS:
                 return x, y
 
         # 自己VCT
+
         return None
 
 
 
 
-bd = [[2,2,2,0,0,0,0,0,0,0],
-      [0,0,0,0,0,2,0,0,0,0],
-      [0,0,0,1,0,0,2,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,1,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,2,0],
-      [0,0,0,0,0,0,0,0,2,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0]
+bd = [[1,1,1,0,0,0,0,0,0,0,2,0],
+      [0,0,0,0,0,1,0,0,0,2,0,0],
+      [0,0,0,0,0,0,1,0,2,0,0,0],
+      [0,0,0,0,0,0,0,2,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0,0,1,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0],
+      [1,0,0,0,0,0,0,0,1,0,0,0],
+      [1,0,0,0,0,0,0,0,0,0,0,0],
+      [1,1,1,0,0,0,0,0,0,0,0,0]
       ]
 
 B = TSS(Board(bd, None))
