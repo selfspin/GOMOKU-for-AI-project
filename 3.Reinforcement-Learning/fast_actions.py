@@ -3,18 +3,15 @@ import pisqpipe as pp
 
 def fast_kill_action(Board):
     color = Board.turn
+
     action = search_five(Board, color)
     if action is not None:
         return action
+
     action = search_five(Board, 3 - color)
     if action is not None:
         return action
-    action = search_four(Board, color)
-    if action is not None:
-        return action
-    action = search_four_op(Board, 3 - color)
-    if action is not None:
-       return action
+
     action = search_double(Board, color)
     if action is not None:
         return action
@@ -25,30 +22,30 @@ def search_five(Board, color):
     boardLength = pp.width
     board = Board.board
     # column
-    for x in range(boardLength-4):
+    for x in range(boardLength - 4):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(5))
+            pieces = tuple(board[x + d][y] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y
     # row
     for x in range(boardLength):
-        for y in range(boardLength-4):
-            pieces = tuple(board[x][y+d] for d in range(5))
+        for y in range(boardLength - 4):
+            pieces = tuple(board[x][y + d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x, y + d
     # positive diagonal
-    for x in range(boardLength-4):
-        for y in range(boardLength-4):
-            pieces = tuple(board[x+d][y+d] for d in range(5))
+    for x in range(boardLength - 4):
+        for y in range(boardLength - 4):
+            pieces = tuple(board[x + d][y + d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y + d
     # oblique diagonal
-    for x in range(boardLength-4):
+    for x in range(boardLength - 4):
         for y in range(4, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(5))
+            pieces = tuple(board[x + d][y - d] for d in range(5))
             if pieces.count(color) == 4 and 0 in pieces:
                 d = pieces.index(0)
                 return x + d, y - d
@@ -59,30 +56,30 @@ def search_four(Board, color):
     boardLength = pp.width
     board = Board.board
     # column
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(6))
+            pieces = tuple(board[x + d][y] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y
     # row
     for x in range(boardLength):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x][y+d] for d in range(6))
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x, y + d
     # positive diagonal
-    for x in range(boardLength-5):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x+d][y+d] for d in range(6))
+    for x in range(boardLength - 5):
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x + d][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y + d
     # oblique diagonal
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(5, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(6))
+            pieces = tuple(board[x + d][y - d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 return x + d, y - d
@@ -93,51 +90,51 @@ def search_four_op(Board, color):
     boardLength = pp.width
     board = Board.board
     # column
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(boardLength):
-            pieces = tuple(board[x+d][y] for d in range(6))
+            pieces = tuple(board[x + d][y] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y)] if d == 4 else [(x + 1, y), (x + 5, y)] if d == 1 \
-                           else [(x, y), (x + d, y), (x + 5, y)]
+                    else [(x, y), (x + d, y), (x + 5, y)]
 
-                _, action = Board.Q_value(legal_actions=actions)
+                action = Board.minimax(legal_actions=actions)
 
                 return action
     # row
     for x in range(boardLength):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x][y+d] for d in range(6))
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x, y + 4)] if d == 4 else [(x, y + 1), (x, y + 5)] if d == 1 \
                     else [(x, y), (x, y + d), (x, y + 5)]
 
-                _, action = Board.Q_value(legal_actions=actions)
+                action = Board.minimax(legal_actions=actions)
 
                 return action
     # positive diagonal
-    for x in range(boardLength-5):
-        for y in range(boardLength-5):
-            pieces = tuple(board[x+d][y+d] for d in range(6))
+    for x in range(boardLength - 5):
+        for y in range(boardLength - 5):
+            pieces = tuple(board[x + d][y + d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y + 4)] if d == 4 else [(x + 1, y + 1), (x + 5, y + 5)] if d == 1 \
                     else [(x, y), (x + d, y + d), (x + 5, y + 5)]
 
-                _, action = Board.Q_value(legal_actions=actions)
+                action = Board.minimax(legal_actions=actions)
 
                 return action
     # oblique diagonal
-    for x in range(boardLength-5):
+    for x in range(boardLength - 5):
         for y in range(5, boardLength):
-            pieces = tuple(board[x+d][y-d] for d in range(6))
+            pieces = tuple(board[x + d][y - d] for d in range(6))
             if pieces[0] == 0 and pieces[5] == 0 and pieces[1:5].count(color) == 3 and 0 in pieces[1:5]:
                 d = pieces.index(0, 1, -1)
                 actions = [(x, y), (x + 4, y - 4)] if d == 4 else [(x + 1, y - 1), (x + 5, y - 5)] if d == 1 \
                     else [(x, y), (x + d, y - d), (x + 5, y - 5)]
 
-                _, action = Board.Q_value(legal_actions=actions)
+                action = Board.minimax(legal_actions=actions)
 
                 return action
     return None
@@ -145,8 +142,10 @@ def search_four_op(Board, color):
 
 def search_double(Board, color):
     # 'double four', 'four-three' and 'double three'
+    # combine search_four
     boardLength = pp.width
     board = Board.board
+
     # possible actions to achieve four
     # column
     col4_my = set()
@@ -265,6 +264,10 @@ def search_double(Board, color):
 
     sets_my = [col4_my, row4_my, pos4_my, ob4_my, col3_my, row3_my, pos3_my, ob3_my]
     sets_op = [col4_op, row4_op, pos4_op, ob4_op, col3_op, row3_op, pos3_op, ob3_op]
+    # my live four
+    action = search_four(Board, color)
+    if action is not None:
+        return action
     # my double four and three-four
     for i in range(4):
         for j in range(i + 1, 4):
@@ -277,6 +280,14 @@ def search_double(Board, color):
                 intersect = sets_my[i] & sets_my[j]
                 if len(intersect) != 0:
                     return list(intersect)[0]
+    action = search_1010101(Board, color)
+    if action is not None:
+        return action
+
+    # op live four
+    action = search_four_op(Board, 3 - color)
+    if action is not None:
+        return action
     # op double four and three-four
     for i in range(4):
         for j in range(i + 1, 4):
@@ -289,15 +300,56 @@ def search_double(Board, color):
                 intersect = sets_op[i] & sets_op[j]
                 if len(intersect) != 0:
                     return list(intersect)[0]
+    action = search_1010101(Board, 3 - color)
+    if action is not None:
+        return action
+
     # my double three
     for i in range(4, 8):
         for j in range(i + 1, 8):
             intersect = sets_my[i] & sets_my[j]
             if len(intersect) != 0:
                 return list(intersect)[0]
+
     # op double three
     for i in range(4, 8):
         for j in range(i + 1, 8):
             intersect = sets_op[i] & sets_op[j]
             if len(intersect) != 0:
                 return list(intersect)[0]
+
+
+def search_1010101(Board, color):
+    # a special double-4 shape
+    boardLength = pp.width
+    board = Board.board
+    # column
+    for x in range(boardLength - 6):
+        for y in range(boardLength):
+            pieces = tuple(board[x + d][y] for d in range(7))
+            if pieces[0] == color and pieces[1] == 0 and pieces[2] == color and pieces[3] == 0 and pieces[
+                4] == color and pieces[5] == 0 and pieces[6] == color:
+
+                return x + 3, y
+    # row
+    for x in range(boardLength):
+        for y in range(boardLength - 6):
+            pieces = tuple(board[x][y + d] for d in range(7))
+            if pieces[0] == color and pieces[1] == 0 and pieces[2] == color and pieces[3] == 0 and pieces[
+                4] == color and pieces[5] == 0 and pieces[6] == color:
+                return x, y + 3
+    # positive diagonal
+    for x in range(boardLength - 6):
+        for y in range(boardLength - 6):
+            pieces = tuple(board[x + d][y + d] for d in range(7))
+            if pieces[0] == color and pieces[1] == 0 and pieces[2] == color and pieces[3] == 0 and pieces[
+                4] == color and pieces[5] == 0 and pieces[6] == color:
+                return x + 3, y + 3
+    # oblique diagonal
+    for x in range(boardLength - 6):
+        for y in range(6, boardLength):
+            pieces = tuple(board[x + d][y - d] for d in range(7))
+            if pieces[0] == color and pieces[1] == 0 and pieces[2] == color and pieces[3] == 0 and pieces[
+                4] == color and pieces[5] == 0 and pieces[6] == color:
+                return x + 3, y - 3
+    return None

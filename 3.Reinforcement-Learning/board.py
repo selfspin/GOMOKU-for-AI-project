@@ -163,8 +163,6 @@ class Board:
         return actions
 
     def extract_feature(self):
-        # DONE
-        # 输出np.array，列向量
         lst = []
         # my
         for i in range(len(self.feature_my)):
@@ -296,3 +294,41 @@ class Board:
                 if pieces.count(op) == 5:
                     return op
         return False
+
+    def get_candidate(self, n=5):
+        if len(self.actions) <= n:
+            return self.actions
+
+        a_q = []
+        for a in self.actions:
+            newBoard = deepcopy(self)
+            newBoard.update_board(a[0], a[1])
+            a_q.append((a, newBoard.evaluation()))
+
+        if self.turn == 1:
+            a_q.sort(key=lambda x: x[1], reverse=True)
+        else:
+            a_q.sort(key=lambda x: x[1])
+        actions = [x[0] for x in a_q[:n]]
+        return actions
+
+    def minimax(self, legal_actions=None):
+        if legal_actions is None:
+            legal_actions = self.get_candidate()
+
+        a_q = []
+        for a in legal_actions:
+            newBoard = deepcopy(self)
+            newBoard.update_board(a[0], a[1])
+            q, _ = newBoard.Q_value()
+            a_q.append((a, q))
+
+        a_q.sort(key=lambda x: x[1])
+        if self.turn == 1:
+            return a_q[-1][0]
+        else:
+            return a_q[0][0]
+
+
+
+

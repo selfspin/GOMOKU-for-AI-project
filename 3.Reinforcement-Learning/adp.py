@@ -2,6 +2,7 @@ import pisqpipe as pp
 from pisqpipe import DEBUG_EVAL, DEBUG
 from fast_actions import *
 from board import *
+from TSS import *
 import nn
 import numpy as np
 
@@ -10,6 +11,26 @@ pp.infotext = 'name="RL", author="", version="1.0", country="China", www=""'
 MAX_BOARD = 100
 board = [[0 for i in range(MAX_BOARD)] for j in range(MAX_BOARD)]
 last_point = None
+k = 0  # num of steps
+
+
+def replay():
+    feature_file = "D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/RL/replay_feature_yx.npy"
+    target_file = "D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/RL/replay_target_yx.npy"
+    winner = my_board.is_win()
+    feature = my_board.extract_feature()
+    replay_f = np.load(feature_file)
+    replay_f = np.concatenate((replay_f, feature), axis=1)
+    np.save(feature_file, replay_f)
+    if winner == 1:
+        replay_y = np.load(target_file)
+        replay_y = np.concatenate((replay_y, np.ones((1, k))), axis=1)
+        np.save(target_file, replay_y)
+    elif winner == 2:
+        replay_y = np.load(target_file)
+        replay_y = np.concatenate((replay_y, np.zeros((1, k))), axis=1)
+        np.save(target_file, replay_y)
+    return
 
 
 def brain_init():
@@ -26,9 +47,11 @@ def brain_restart():
     for x in range(pp.width):
         for y in range(pp.height):
             board[x][y] = 0
-    global last_point, my_board
+    global last_point, my_board, k
     last_point = None
+    replay()
     my_board = Board(np.zeros((20, 20)), network=network, explore_prob=0)
+    k = 0
     pp.pipeOut("OK")
 
 
@@ -38,18 +61,29 @@ def isFree(x, y):
 
 def brain_my(x, y):
     if isFree(x, y):
+        global k
+        k += 1
         board[x][y] = 1
         my_board.update_board(x, y)
+        replay()
+
+        a = search_five(my_board, my_board.turn)
+        if a is not None:
+            k += 1
+            my_board.update_board(a[0], a[1])
+            replay()
     else:
         pp.pipeOut("ERROR my move [{},{}]".format(x, y))
 
 
 def brain_opponents(x, y):
     if isFree(x, y):
+        global last_point, k
+        last_point = (x, y)
+        k += 1
         board[x][y] = 2
         my_board.update_board(x, y)
-        global last_point
-        last_point = (x, y)
+        replay()
     else:
         pp.pipeOut("ERROR opponents's move [{},{}]".format(x, y))
 
@@ -79,9 +113,15 @@ def brain_turn():
             pp.do_mymove(x, y)
             return
 
-        action = fast_kill_action(my_board)
+        B = TSS(my_board)
+        action = B.solve()
+        logDebug('this is TSS:' + str(action))
         if not action:
-            action = my_board.e_greedy()
+            logDebug('this is fast action' + str(action))
+            action = fast_kill_action(my_board)
+        if not action:
+            action = my_board.minimax()
+            logDebug('this is foolish network' + str(action))
         x, y = action
         pp.do_mymove(x, y)
     except:
@@ -138,7 +178,8 @@ def logTraceBack():
 
 
 try:
-    par = np.load('D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/RL/para_replay2.npy', allow_pickle=True)
+    par = np.load('D:/360Files/My Learning/2021-2022 5/5人工智能/Final Project/pbrain/RL/para_replay_yx.npy',
+                  allow_pickle=True)
     par = par.reshape(1)[0]
     network = nn.NN(params=par)
     my_board = Board(np.zeros((20, 20)), network=network, explore_prob=0)
