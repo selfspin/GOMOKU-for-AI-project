@@ -1,5 +1,4 @@
 from board import *
-import numpy as np
 import regex
 
 live_3_my = ['011100', '011010']
@@ -136,6 +135,7 @@ class TSS:
             return False
         return True
 
+    # Victory of Continuous Four
     def VCF(self, x, y, turn):
         if self.check_five(x, y, turn):
             return True
@@ -169,6 +169,127 @@ class TSS:
         else:
             return False
 
+    def check_three(self, x, y, turn):
+        flag = 0
+        turn = int(turn)
+        if turn != int(live_3_my[0][1]):
+            pattern_exchange()
+
+        pos = []
+        for (dx, dy) in direction:
+            s = str(turn)
+            for i in range(1, 5):
+                if self.is_legal(x + i * dx, y + i * dy):
+                    s = self.num2str(self.board[x + i * dx][y + i * dy]) + s
+                else:
+                    break
+            xypos = len(s) - 1
+            for i in range(1, 5):
+                if self.is_legal(x - i * dx, y - i * dy):
+                    s += self.num2str(self.board[x - i * dx][y - i * dy])
+                else:
+                    break
+
+            for mod in live_3_my:
+                if s.find(mod) >= 0:
+                    flag += 1
+                    for p in dict_block[mod]:
+                        k = s.find(mod) + p - 1 - xypos
+                        pos.append((x - k*dx, y - k*dy))
+                    if flag >= 2:
+                        return 'win', None
+                    break
+                elif s.find(self.reverse(mod)) >= 0:
+                    flag += 1
+                    for p in dict_block[mod]:
+                        k = s.find(self.reverse(mod)) + (len(mod) - p + 1) - 1 - xypos
+                        pos.append((x - k*dx, y - k*dy))
+                    if flag >= 2:
+                        return 'win', None
+                    break
+
+        if flag:
+            return 'live', pos
+
+        return False, None
+
+    def block_three(self, myx, myy, pos, turn):
+        for x, y in pos:
+            # 封堵
+            op_result, _ = self.check_four(x, y, op_turn(turn))
+            if op_result:  # 遇到冲4必凉
+                return False
+            op_result, _ = self.check_three(x, y, op_turn(turn))
+            if op_result == 'win':  # 遇到双3也凉
+                return False
+            elif op_result == 'live' and not self.VCF(myx, myy, turn):  # 遇到单3但是没法VCF，也冀了
+                return False
+        return True
+
+    # Victory of Continuous Three
+    def VCT(self, x, y, turn):
+        if self.VCF(x, y, turn):
+            return True
+        result3, pos3 = self.check_three(x, y, turn)
+        result4, pos4 = self.check_four(x, y, turn)
+        if result3 == 'win' or result4 == 'win' or (result3 == 'live' and result4 == 'rest'):
+            return True
+        elif result4 == 'rest':
+            self.board[x][y] = turn
+            bx, by = pos4
+            if not self.block_four(bx, by, turn):  # 对手封堵过程形成冲4
+                self.board[x][y] = 0
+                return False
+            self.board[bx][by] = op_turn(turn)
+
+            ans = False
+            for dx, dy in direction:
+                for i in range(-4, 5):
+                    nx = x + i * dx
+                    ny = y + i * dy
+                    if not self.is_free(nx, ny):
+                        continue
+                    ans = ans or self.VCT(nx, ny, turn)
+                    if ans:
+                        self.board[bx][by] = 0
+                        self.board[x][y] = 0
+                        return True
+
+            self.board[bx][by] = 0
+            self.board[x][y] = 0
+            return False
+        elif result3 == 'live':
+            self.board[x][y] = turn
+            for bx, by in pos3:
+                self.board[bx][by] = op_turn(turn)
+
+            if not self.block_three(x, y, pos3, turn):  # 对手封堵过程形成威胁
+                self.board[x][y] = 0
+                for bx, by in pos3:
+                    self.board[bx][by] = 0
+                return False
+
+            ans = False
+            for dx, dy in direction:
+                for i in range(-4, 5):
+                    nx = x + i * dx
+                    ny = y + i * dy
+                    if not self.is_free(nx, ny):
+                        continue
+                    ans = ans or self.VCT(nx, ny, turn)
+                    if ans:
+                        for bx, by in pos3:
+                            self.board[bx][by] = 0
+                        self.board[x][y] = 0
+                        return True
+
+            for bx, by in pos3:
+                self.board[bx][by] = 0
+            self.board[x][y] = 0
+            return False
+        else:
+            return False
+
     def solve(self):
         # 确定pattern
         if self.turn != int(live_3_my[0][1]):
@@ -195,25 +316,73 @@ class TSS:
                 return x, y
 
         # 自己VCT
+        for (x, y) in self.acts:
+            if self.VCT(x, y, self.turn):
+                return x, y
+
+        # 对手VCT
+        for (x, y) in self.acts:
+            if self.VCT(x, y, op_turn(self.turn)):
+                return x, y
 
         return None
 
 
+bd0 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+       ]
 
+bd1 = [[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0],
+       [0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0],
+       [0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+       ]
 
-bd = [[1,1,1,0,0,0,0,0,0,0,2,0],
-      [0,0,0,0,0,1,0,0,0,2,0,0],
-      [0,0,0,0,0,0,1,0,2,0,0,0],
-      [0,0,0,0,0,0,0,2,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,0,1,0,0],
-      [0,0,0,0,0,0,0,0,1,0,0,0],
-      [0,0,0,0,0,0,0,0,1,0,0,0],
-      [0,0,0,0,0,0,0,0,1,0,0,0],
-      [1,0,0,0,0,0,0,0,1,0,0,0],
-      [1,0,0,0,0,0,0,0,0,0,0,0],
-      [1,1,1,0,0,0,0,0,0,0,0,0]
-      ]
+bd2 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0],
+       [0, 0, 2, 0, 0, 0, 2, 0, 0, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+       ]
 
-B = TSS(Board(bd, None))
+bd3 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 2, 1, 1, 2, 0, 0, 0, 0],
+       [0, 0, 0, 2, 1, 0, 1, 2, 0, 0, 0, 0],
+       [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+       ]
+
+B = TSS(Board(bd3, None))
 print(B.solve())
