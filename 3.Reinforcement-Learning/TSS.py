@@ -314,6 +314,15 @@ class TSS:
         # 对手VCF
         for (x, y) in self.acts:
             if self.VCF(x, y, op_turn(self.turn)):
+                self.board[x][y] = self.turn
+                for (nx, ny) in self.acts:
+                    if nx == x and ny == y:
+                        continue
+                    if self.VCF(nx, ny, op_turn(self.turn)):
+                        x = nx
+                        y = ny
+                        break
+                self.board[x][y] = 0
                 return x, y
 
         # 自己VCT
@@ -324,6 +333,15 @@ class TSS:
         # 对手VCT
         for (x, y) in self.acts:
             if self.VCT(x, y, op_turn(self.turn)):
+                self.board[x][y] = self.turn
+                for (nx, ny) in self.acts:
+                    if nx == x and ny == y:
+                        continue
+                    if self.VCT(nx, ny, op_turn(self.turn)):
+                        x = nx
+                        y = ny
+                        break
+                self.board[x][y] = 0
                 return x, y
 
         return None
