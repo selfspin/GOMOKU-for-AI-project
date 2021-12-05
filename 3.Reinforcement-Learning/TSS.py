@@ -260,6 +260,7 @@ class TSS:
             return False
         elif result3 == 'live':
             self.board[x][y] = turn
+            # 所有可能的堵法都堵上，使得下一个攻击手段与堵法无关
             for bx, by in pos3:
                 self.board[bx][by] = op_turn(turn)
 
