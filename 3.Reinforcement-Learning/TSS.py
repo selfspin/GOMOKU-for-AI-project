@@ -232,7 +232,8 @@ class TSS:
             return True
         result3, pos3 = self.check_three(x, y, turn)
         result4, pos4 = self.check_four(x, y, turn)
-        if result3 == 'win' or result4 == 'win' or (result3 == 'live' and result4 == 'rest'):
+        if result3 == 'win' or result4 == 'win' \
+                or (result3 == 'live' and result4 == 'rest' and pos4 not in pos3):
             return True
         elif result4 == 'rest':
             self.board[x][y] = turn
@@ -299,63 +300,83 @@ class TSS:
         # 自己成5
         for (x, y) in self.acts:
             if self.check_five(x, y, self.turn):
-                return x, y
+                return [(x, y)]
 
         # 检查对手已有冲4
         for (x, y) in self.acts:
             if self.check_five(x, y, op_turn(self.turn)):
-                return x, y
+                return [(x, y)]
 
         # 自己VCF
         for (x, y) in self.acts:
             if self.VCF(x, y, self.turn):
-                return x, y
+                return [(x, y), 'myVCF']
 
         # 对手VCF
+        kill = []
         for (x, y) in self.acts:
             if self.VCF(x, y, op_turn(self.turn)):
+                kill.append((x, y))
+        num = len(kill)
+        if num == 1:
+            return kill
+        elif num >= 2:
+            rnt = []
+            for (x, y) in kill:
+                flag = True
                 self.board[x][y] = self.turn
-                for (nx, ny) in self.acts:
-                    if nx == x and ny == y:
+                for kx, ky in kill:
+                    if kx == x and ky == y:
                         continue
-                    if self.VCF(nx, ny, op_turn(self.turn)):
-                        x = nx
-                        y = ny
+                    if self.VCF(kx, ky, op_turn(self.turn)):
+                        flag = False
                         break
                 self.board[x][y] = 0
-                return x, y
+                if flag:
+                    rnt.append((x, y))
+            return rnt
 
         # 自己VCT
         for (x, y) in self.acts:
             if self.VCT(x, y, self.turn):
-                return x, y
+                return [(x, y), 'myVCT']
 
         # 对手VCT
+        kill = []
         for (x, y) in self.acts:
             if self.VCT(x, y, op_turn(self.turn)):
+                kill.append((x, y))
+        num = len(kill)
+        if num == 1:
+            return kill
+        elif num >= 2:
+            rnt = []
+            for (x, y) in kill:
+                flag = True
                 self.board[x][y] = self.turn
-                for (nx, ny) in self.acts:
-                    if nx == x and ny == y:
+                for (kx, ky) in kill:
+                    if kx == x and ky == y:
                         continue
-                    if self.VCT(nx, ny, op_turn(self.turn)):
-                        x = nx
-                        y = ny
+                    if self.VCT(kx, ky, op_turn(self.turn)):
+                        flag = False
                         break
                 self.board[x][y] = 0
-                return x, y
+                if flag:
+                    rnt.append((x, y))
+            return rnt
 
-        return None
+        return []
 
 
 bd0 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 1, 2, 0, 2, 0, 1, 0, 0, 0, 0],
+       [0, 1, 0, 0, 2, 1, 1, 2, 1, 0, 0, 0],
+       [0, 2, 1, 0, 1, 2, 2, 0, 0, 2, 0, 0],
+       [0, 0, 2, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+       [0, 0, 2, 1, 2, 0, 2, 0, 0, 0, 0, 0],
+       [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -403,5 +424,5 @@ bd3 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
        ]
 
-B = TSS(Board(bd3, None))
+B = TSS(Board(bd0, None))
 print(B.solve())
