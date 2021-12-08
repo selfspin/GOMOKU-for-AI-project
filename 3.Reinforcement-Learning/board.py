@@ -317,17 +317,11 @@ class Board:
             legal_actions = self.get_candidate()
 
         a_q = []
-        for a1 in legal_actions:
-            newBoard1 = deepcopy(self)
-            newBoard1.update_board(a1[0], a1[1])
-            q2 = []
-            for a2 in newBoard1.get_candidate():
-                newBoard2 = deepcopy(newBoard1)
-                newBoard2.update_board(a2[0], a2[1])
-                q, _ = newBoard2.Q_value()
-                q2.append(q)
-            q1 = max(q2) if newBoard1.turn == 1 else min(q2)
-            a_q.append((a1, q1))
+        for a in legal_actions:
+            newBoard = deepcopy(self)
+            newBoard.update_board(a[0], a[1])
+            q, _ = newBoard.Q_value()
+            a_q.append((a, q))
 
         a_q.sort(key=lambda x: x[1])
         if self.turn == 1:
