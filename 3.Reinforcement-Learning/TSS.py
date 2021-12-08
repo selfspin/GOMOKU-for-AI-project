@@ -22,13 +22,21 @@ direction = [(1, 1), (1, 0), (0, 1), (1, -1)]
 
 def pattern_exchange():
     global live_3_my, live_3_op
-    mid = live_3_my; live_3_my = live_3_op; live_3_op = mid
+    mid = live_3_my
+    live_3_my = live_3_op
+    live_3_op = mid
     global live_4_my, live_4_op
-    mid = live_4_my; live_4_my = live_4_op; live_4_op = mid
+    mid = live_4_my
+    live_4_my = live_4_op
+    live_4_op = mid
     global rest_4_my, rest_4_op
-    mid = rest_4_my; rest_4_my = rest_4_op; rest_4_op = mid
+    mid = rest_4_my
+    rest_4_my = rest_4_op
+    rest_4_op = mid
     global win_my, win_op
-    mid = win_my; win_my = win_op; win_op = mid
+    mid = win_my
+    win_my = win_op
+    win_op = mid
     return
 
 
@@ -110,14 +118,14 @@ class TSS:
                 if s.find(mod) >= 0:
                     flag += 1
                     k = s.find(mod) + dict_block[mod][0] - 1 - xypos
-                    pos = (x - k*dx, y - k*dy)
+                    pos = (x - k * dx, y - k * dy)
                     if flag >= 2:
                         return 'win', None
                     break
                 elif s.find(self.reverse(mod)) >= 0:
                     flag += 1
                     k = s.find(self.reverse(mod)) + (len(mod) - dict_block[mod][0] + 1) - 1 - xypos
-                    pos = (x - k*dx, y - k*dy)
+                    pos = (x - k * dx, y - k * dy)
                     if flag >= 2:
                         return 'win', None
                     break
@@ -153,8 +161,8 @@ class TSS:
             ans = False
             for dx, dy in direction:
                 for i in range(-4, 5):
-                    nx = x + i*dx
-                    ny = y + i*dy
+                    nx = x + i * dx
+                    ny = y + i * dy
                     if not self.is_free(nx, ny):
                         continue
                     ans = ans or self.VCF(nx, ny, turn)
@@ -195,7 +203,7 @@ class TSS:
                     flag += 1
                     for p in dict_block[mod]:
                         k = s.find(mod) + p - 1 - xypos
-                        pos.append((x - k*dx, y - k*dy))
+                        pos.append((x - k * dx, y - k * dy))
                     if flag >= 2:
                         return 'win', None
                     break
@@ -203,7 +211,7 @@ class TSS:
                     flag += 1
                     for p in dict_block[mod]:
                         k = s.find(self.reverse(mod)) + (len(mod) - p + 1) - 1 - xypos
-                        pos.append((x - k*dx, y - k*dy))
+                        pos.append((x - k * dx, y - k * dy))
                     if flag >= 2:
                         return 'win', None
                     break
@@ -310,7 +318,7 @@ class TSS:
         # 自己VCF
         for (x, y) in self.acts:
             if self.VCF(x, y, self.turn):
-                return [(x, y), 'myVCF']
+                return [(x, y)]
 
         # 对手VCF
         kill = []
@@ -339,7 +347,7 @@ class TSS:
         # 自己VCT
         for (x, y) in self.acts:
             if self.VCT(x, y, self.turn):
-                return [(x, y), 'myVCT']
+                return [(x, y)]
 
         # 对手VCT
         kill = []
@@ -367,16 +375,16 @@ class TSS:
 
         return []
 
-
+'''
 bd0 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-       [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-       [0, 0, 1, 2, 0, 2, 0, 1, 0, 0, 0, 0],
-       [0, 1, 0, 0, 2, 1, 1, 2, 1, 0, 0, 0],
-       [0, 2, 1, 0, 1, 2, 2, 0, 0, 2, 0, 0],
-       [0, 0, 2, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-       [0, 0, 2, 1, 2, 0, 2, 0, 0, 0, 0, 0],
-       [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -426,3 +434,4 @@ bd3 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 
 B = TSS(Board(bd0, None))
 print(B.solve())
+'''

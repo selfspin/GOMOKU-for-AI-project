@@ -15,3 +15,4 @@ for i in dic.keys():
     f.write(']),\n')
 
 f.write('}')
+f.close()
