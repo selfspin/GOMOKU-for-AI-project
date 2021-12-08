@@ -25,3 +25,5 @@ mcts
 ## RL
 
 selfspin：TSS快写死我了    2021.12.4
+
+![RLt rank](https://github.com/selfspin/GOMOKU-for-AI-project/blob/main/figure/image.png)
