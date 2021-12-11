@@ -123,7 +123,7 @@ def brain_turn():
         # logDebug('this is TSS:' + str(action))
         if not action:
             if pp.info_time_left < 10000:
-                action = my_board.minimax(max_depth=2)
+                action = my_board.minimax(max_depth=1)
             else:
                 action = my_board.minimax()
             # logDebug('this is foolish network' + str(action))

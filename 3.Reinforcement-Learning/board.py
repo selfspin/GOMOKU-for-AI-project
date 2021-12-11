@@ -376,7 +376,7 @@ class Board:
         return self.calculate_utility(x[0], x[1])
 
     def max_value(self, alpha, beta, depth, max_depth, legal_actions=None):
-        if depth >= max_depth:
+        if depth > max_depth:
             v = self.evaluation()
             return v, None
 
