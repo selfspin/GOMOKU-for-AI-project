@@ -51,6 +51,7 @@ class Board:
         self.height = self.board.shape[1]
         self._init_feature()
         self.feature = self.extract_feature()
+        self.MAX_POINT = 5
 
     def _init_feature(self):
         self.feature_my = np.zeros(len(patterns_my) + 1)
@@ -138,11 +139,65 @@ class Board:
         update_feature_by_str(string, self.feature_my, self.feature_op)
         update_feature_by_str(string2, self.feature_my, self.feature_op, -1)
 
-    def update_board(self, x, y):
+    def _back_feature(self, x, y):
+        self.feature_my[-1] = int(self.turn == 1)
+        self.feature_op[-1] = int(self.turn == 2)
+        # row
+        string = ''.join(str(int(self.board[i][y])) for i in range(self.width))
+        update_feature_by_str(string, self.feature_my, self.feature_op, -1)
+        string = string[0:x] + '0' + string[(x + 1):self.width]
+        update_feature_by_str(string, self.feature_my, self.feature_op)
+        # col
+        string = ''.join(str(int(self.board[x][j])) for j in range(self.height))
+        update_feature_by_str(string, self.feature_my, self.feature_op, -1)
+        string = string[0:y] + '0' + string[(y + 1):self.height]
+        update_feature_by_str(string, self.feature_my, self.feature_op)
+        # diag
+        string = str(int(self.board[x][y]))
+        string2 = '0'
+        for expand in range(1, self.height):
+            if 0 <= x + expand < self.width \
+                    and 0 <= y - expand < self.height:
+                string = str(int(self.board[x + expand][y - expand])) + string
+                string2 = str(int(self.board[x + expand][y - expand])) + string2
+            if 0 <= x - expand < self.width \
+                    and 0 <= y + expand < self.height:
+                string = string + str(int(self.board[x - expand][y + expand]))
+                string2 = string2 + str(int(self.board[x - expand][y + expand]))
+        update_feature_by_str(string, self.feature_my, self.feature_op, -1)
+        update_feature_by_str(string2, self.feature_my, self.feature_op)
+        # oblique diag
+        string = str(int(self.board[x][y]))
+        string2 = '0'
+        for expand in range(1, self.height):
+            if 0 <= x + expand < self.width \
+                    and 0 <= y + expand < self.height:
+                string = str(int(self.board[x + expand][y + expand])) + string
+                string2 = str(int(self.board[x + expand][y + expand])) + string2
+            if 0 <= x - expand < self.width \
+                    and 0 <= y - expand < self.height:
+                string = string + str(int(self.board[x - expand][y - expand]))
+                string2 = string2 + str(int(self.board[x - expand][y - expand]))
+        update_feature_by_str(string, self.feature_my, self.feature_op, -1)
+        update_feature_by_str(string2, self.feature_my, self.feature_op)
+
+    def update_board(self, x, y, chg=True):
         self.board[x, y] = self.turn
         self.turn = 3 - self.turn
-        self.update_actions(self.actions, x, y)
+        if chg:
+            self.update_actions(self.actions, x, y)
         self._update_feature(x, y)
+
+    def back_board(self, x, y):
+        self.turn = 3 - self.turn
+        self._back_feature(x, y)
+        self.board[x, y] = 0
+
+    def calculate_utility(self, x, y):
+        self.update_board(x, y, False)
+        ans = self.evaluation()
+        self.back_board(x, y)
+        return ans
 
     def update_actions(self, actions, x, y, k=1):
         if (x, y) in actions:
@@ -312,22 +367,88 @@ class Board:
         actions = [x[0] for x in a_q[:n]]
         return actions
 
-    def minimax(self, legal_actions=None):
+    def minimax(self, legal_actions=None, max_depth=3):
+        depth = 0
+        v, action = self.max_value(float("-inf"), float("inf"), depth + 1, max_depth, legal_actions)
+        return action
+
+    def sort_key(self, x):
+        return self.calculate_utility(x[0], x[1])
+
+    def max_value(self, alpha, beta, depth, max_depth, legal_actions=None):
+        if depth >= max_depth:
+            v = self.evaluation()
+            return v, None
+
+        v = float("-inf")
+        act = None
+
         if legal_actions is None:
-            legal_actions = self.get_candidate()
-
-        a_q = []
-        for a in legal_actions:
-            newBoard = deepcopy(self)
-            newBoard.update_board(a[0], a[1])
-            q, _ = newBoard.Q_value()
-            a_q.append((a, q))
-
-        a_q.sort(key=lambda x: x[1])
-        if self.turn == 1:
-            return a_q[-1][0]
+            f = (len(self.actions) != 0)
         else:
-            return a_q[0][0]
+            f = (len(legal_actions) != 0)
+
+        if f:
+            if legal_actions is None:
+                action_list = self.actions.copy()
+            else:
+                action_list = legal_actions
+            action_list.sort(key=self.sort_key, reverse=True)
+            action_list = action_list[0:min(self.MAX_POINT, len(action_list))]
+
+            for a in action_list:
+                origin_actions = self.actions.copy()
+                self.update_board(a[0], a[1])
+                move_v, move_action = self.min_value(alpha, beta, depth + 1, max_depth)
+                self.back_board(a[0], a[1])
+                self.actions = origin_actions
+
+                if not act:
+                    act = a
+                if move_v > v:
+                    v = move_v
+                    act = a
+                if v >= beta:
+                    return v, act
+                alpha = max(alpha, v)
+        else:
+            v = self.evaluation()
+            act = None
+        return v, act
+
+    def min_value(self, alpha, beta, depth, max_depth):
+        if depth >= max_depth:
+            v = self.evaluation()
+            return v, None
+
+        v = float("inf")
+        act = None
+        if len(self.actions) != 0:
+            action_list = self.actions.copy()
+            action_list.sort(key=self.sort_key)
+            action_list = action_list[0:min(self.MAX_POINT, len(action_list))]
+            for a in action_list:
+                origin_actions = self.actions.copy()
+                self.update_board(a[0], a[1])
+                move_v, move_action = self.max_value(alpha, beta, depth + 1, max_depth)
+                self.back_board(a[0], a[1])
+                self.actions = origin_actions
+
+                if not act:
+                    act = a
+                if move_v < v:
+                    v = move_v
+                    act = a
+                if v <= alpha:
+                    return v, act
+                beta = min(beta, v)
+        else:
+            v = self.evaluation()
+            act = None
+
+        return v, act
+
+
 
 
 
